@@ -1,0 +1,25 @@
+<?xml version="1.0"?>
+<package>
+  <name>icl_ros_segmentation</name>
+  <version>0.0.1</version>
+  <description>The icl_ros_segmentation package provides a segmentation node, reading data from icl shared memory, and writing result to ROS topics</description>
+
+  <maintainer email="gwalck@techfak.uni-bielefeld.de">Guillaume Walck</maintainer>
+  <license>TODO</license>
+  
+  <author email="aueckerm@techfak.uni-bielefeld.de">Andre Ueckermann </author>
+  <author email="gwalck@techfak.uni-bielefeld.de">Guillaume Walck</author>
+
+  <buildtool_depend>catkin</buildtool_depend>
+  <build_depend>image_transport</build_depend>
+  <build_depend>sensor_msgs</build_depend>
+  <build_depend>pcl_conversions</build_depend>
+  <build_depend>cv_bridge</build_depend>
+  <run_depend>image_transport</run_depend>
+  <run_depend>sensor_msgs</run_depend>
+  <run_depend>pcl_conversions</run_depend>
+  <run_depend>cv_bridge</run_depend>
+  <export>
+
+  </export>
+</package>
