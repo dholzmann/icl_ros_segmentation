@@ -108,14 +108,16 @@ namespace icl{
         addProperty("pre.temporal smoothing size","range","[1,15]:1",6);
         addProperty("pre.temporal smoothing diff","range","[1,22]:1",10);
         addProperty("pre.filter","menu","unfiltered,median3x3,median5x5","median3x3");
+        * */
         addProperty("pre.normal range","range","[1,15]:1",1);
-        addProperty("pre.averaging","flag","",true);
+        //addProperty("pre.averaging","flag","",true);
         addProperty("pre.averaging range","range","[1,15]:1",2);
-        addProperty("pre.smoothing","menu","linear,gaussian","linear");
+        //addProperty("pre.smoothing","menu","linear,gaussian","linear");
+        
         addProperty("pre.edge threshold","range","[0.7,1]",0.89);
-        addProperty("pre.edge angle method","menu","max,mean","mean");
+        //addProperty("pre.edge angle method","menu","max,mean","mean");
         addProperty("pre.edge neighborhood","range","[1,15]",1);
-*/
+
        
         
         addProperty("surfaces.min surface size","range","[5,75]:1",50);
@@ -162,34 +164,38 @@ namespace icl{
     }
 
     void ConfigurableDepthImageSegmenter::computePointCloudFirst(const core::Img32f &depthImage, PointCloudObject &obj){
-        obj.lock();
-      
+      obj.lock();
       //create pointcloud
       float depthScaling=getPropertyValue("general.depth scaling");
       GeomColor c(1.,0.,0.,1.);
-	    obj.selectRGBA32f().fill(c);
-     // if(useTempSmoothing==true){
-     //   m_data->creator->create(*filteredImage->as32f(), obj, 0, depthScaling);
-     // }else{
-        m_data->creator->create(*depthImage.as32f(), obj, 0, depthScaling);
-     // }  
-        obj.unlock();
+      obj.selectRGBA32f().fill(c);
+      m_data->creator->create(*depthImage.as32f(), obj, 0, depthScaling);
+      obj.unlock();
     }
     void ConfigurableDepthImageSegmenter::applySecond(const core::Img32f &depthImage, PointCloudObject &obj){
 
-      m_data->edgeImage=m_data->objectEdgeDetector->calculate(*depthImage.as32f(), false,
-                                               true, false);
+      int normalrange = getPropertyValue("pre.normal range");
+      int avgrange = getPropertyValue("pre.averaging range");
+      int neighbrange = getPropertyValue("pre.edge neighborhood");
+      float threshold = getPropertyValue("pre.edge threshold");
+      
+      m_data->objectEdgeDetector->setNormalCalculationRange(normalrange);	
+      m_data->objectEdgeDetector->setNormalAveragingRange(avgrange);
+
+      m_data->objectEdgeDetector->setAngleNeighborhoodRange(neighbrange);
+      m_data->objectEdgeDetector->setBinarizationThreshold(threshold);
+
+      m_data->edgeImage=m_data->objectEdgeDetector->calculate(*depthImage.as32f(), false, true, false);
 
       m_data->objectEdgeDetector->applyWorldNormalCalculation(m_data->depthCamera);
       m_data->normalImage=m_data->objectEdgeDetector->getRGBNormalImage();
- 
+
       obj.lock();
       core::DataSegment<float,4> normals;
-      
+
       core::DataSegment<float,4> xyz = obj.selectXYZH();
-  
-      
-      
+
+
       //high level segmenation
       bool enableSegmentation = getPropertyValue("general.enable segmentation");
    
