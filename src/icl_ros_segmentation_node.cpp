@@ -198,7 +198,25 @@ void init(){
   std::cout<<"segmenter configured"<<std::endl;
 
   // initialize GUI
-  gui << Draw3D().handle("draw3D").minSize(40,30) << Show();
+  
+  GUI controls = HBox().minSize(12,12);
+  controls << ( VBox()
+                << Button("reset view").handle("resetView")
+                << CheckBox("Show primitives").handle("showPrimitivesHandle") //for primitives filtering
+                << Prop("segmentation").minSize(10,8)
+                );
+  
+  
+  gui << ( VBox() 
+           << Image().handle("hdepth").minSize(8,5).label("depth image")
+           << Image().handle("hcolor").minSize(8,5).label("color image")
+           << Image().handle("hedgefil").minSize(8,5).label("depth filtered")
+           << Image().handle("hedge").minSize(8,5).label("surface edges")
+         ) << 
+         ( HSplit()
+           << Draw3D().handle("draw3D").minSize(40,30)
+           << controls
+           )<< Show();
 
   // kinect camera
   scene.addCamera(kinect->depthCam);
@@ -268,6 +286,9 @@ void run(){
   Kinect::Frame f = kinect->grab();
   if (f.isValid())
   {
+    
+    gui["hdepth"] = f.d();
+    gui["hcolor"] = f.c();
       //invalid_frame = false;
 
     // compute the pointcloud
@@ -286,7 +307,8 @@ void run(){
       primitivesMutex.lock();
       primitiveFilter->apply(primitives, *pc_obj, &depthImageFiltered);
       // display primitives
-      if(true) {
+      static CheckBoxHandle showPrimitives = gui["showPrimitivesHandle"];
+      if(showPrimitives.isChecked()) {
         for(uint i = 0; i < primitives.size(); ++i) {
           primitives[i].toSceneObject(primitive_holder);
         }
@@ -307,7 +329,6 @@ void run(){
       segmenter->applySecond(f.d(), *pc_obj);
       ROS_DEBUG_STREAM("segmentation done");
     }
-    
     // extract data
     std::vector<std::vector<int> > seg;
     std::vector<std::vector<int> > surf;
@@ -319,7 +340,10 @@ void run(){
     ROS_DEBUG_STREAM("extracting surface features ");
     vec_sf = segmenter->getSurfaceFeatures();
     ROS_DEBUG_STREAM("data extracted");
-    
+
+    gui["hedge"] = segmenter->getEdgeImage();
+    gui["hedgefil"] = &depthImageFiltered;
+
     /* not verified // example code to access data
     DataSegment<float,4> pcs = obj->selectXYZH();
     if((seg.size()<25)&&(seg.size()>0)){
