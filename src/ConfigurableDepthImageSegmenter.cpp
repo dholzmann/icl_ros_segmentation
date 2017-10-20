@@ -316,6 +316,18 @@ namespace icl{
     std::vector<std::vector<int> > ConfigurableDepthImageSegmenter::getSegments(){
       return m_data->segmentation->getSegments();
     }
+    
+    std::vector<PointCloudSegmentPtr> ConfigurableDepthImageSegmenter::getClusters(const core::Img32f &depthImage, PointCloudObject &obj){
+      bool cutfreeEnable = getPropertyValue("cutfree.enable cutfree adjacency feature");
+      bool coplanEnable = getPropertyValue("coplanarity.enable coplanarity feature");
+      bool curveEnable = getPropertyValue("curvature.enable curvature feature");
+      bool remainingEnable = getPropertyValue("remaining.enable remaining points feature");
+      bool useROI = getPropertyValue("general.use ROI");  
+ 
+      return m_data->segmentation->applyHierarchical(obj.selectXYZH(), obj.selectRGBA32f(), m_data->edgeImage, depthImage, 
+                 m_data->objectEdgeDetector->getNormals(), useROI, cutfreeEnable, coplanEnable,curveEnable, remainingEnable);
+    }
+     
      
   } // namespace geom
 }

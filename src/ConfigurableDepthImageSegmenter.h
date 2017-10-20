@@ -63,6 +63,7 @@ namespace icl{
       
       void computePointCloudFirst(const core::Img32f &depthImage, PointCloudObject &obj);
       void applySecond(const core::Img32f &depthImage, PointCloudObject &obj);
+      std::vector<PointCloudSegmentPtr>  getClusters(const core::Img32f &depthImage, PointCloudObject &obj);
       
 	  std::vector<geom::SurfaceFeatureExtractor::SurfaceFeature> getSurfaceFeatures();
 
