@@ -87,6 +87,13 @@ Scene scene;
 bool primitive_filtering = false;
 
 
+struct BBoxes : public geom::SceneObject{
+      BBoxes(){};
+      void update(std::vector<PointCloudSegmentPtr > &clusters);
+    };
+
+BBoxes *bboxes;
+
 struct AdaptedSceneMouseHandler : public MouseHandler{
   Mutex mutex;
   MouseHandler *h;
@@ -100,6 +107,43 @@ struct AdaptedSceneMouseHandler : public MouseHandler{
   }
 
 } *mouse = 0;
+
+
+  
+void BBoxes::update(std::vector<PointCloudSegmentPtr > &clusters){
+  SceneObject::lock();
+  removeAllChildren();
+  
+  for(size_t i=0;i<clusters.size();++i){
+    SceneObject *so = 0, *so2=0;
+    const PointCloudSegment::AABB &aabb = clusters[i]->aabb;
+    so = addCuboid((aabb.min[0]+aabb.max[0])*0.5,
+                  (aabb.min[1]+aabb.max[1])*0.5,
+                  (aabb.min[2]+aabb.max[2])*0.5,
+                  (aabb.max[0]-aabb.min[0]),
+                  (aabb.max[1]-aabb.min[1]),
+                  (aabb.max[2]-aabb.min[2]));
+
+    so->setVisible(Primitive::quad,false);
+    so->setColor(Primitive::quad,geom_red(30));
+    so->setColor(Primitive::line,geom_red());
+    
+    for(int j=0;j<clusters[i]->getNumSubSegments();++j){
+      const PointCloudSegment::AABB &aabb = clusters[i]->getSubSegment(j)->aabb;
+      so2 = so->addCuboid((aabb.min[0]+aabb.max[0])*0.5,
+                          (aabb.min[1]+aabb.max[1])*0.5,
+                          (aabb.min[2]+aabb.max[2])*0.5,
+                          (aabb.max[0]-aabb.min[0]),
+                          (aabb.max[1]-aabb.min[1]),
+                          (aabb.max[2]-aabb.min[2]));
+
+      so2->setVisible(Primitive::quad,true);
+      so2->setColor(Primitive::quad,geom_green(30));
+      so2->setColor(Primitive::line,geom_green());
+    }
+  }
+  SceneObject::unlock();
+}
 
 //primitive filtering callback function
 void getPrimitivesFromRSB(boost::shared_ptr<Primitive3DFloatSet> evPrimitiveSet){
@@ -126,8 +170,6 @@ void getPrimitivesFromRSB(boost::shared_ptr<Primitive3DFloatSet> evPrimitiveSet)
   primitives = rsbPrimitives;
   primitivesMutex.unlock();
 }
-
-
 
 void init(){
   
@@ -178,7 +220,6 @@ void init(){
 
   // initialize the pointcloud
   pc_obj = new PointCloudObject(kinect->size.width, kinect->size.height,true,false,true); //was  true,true,true at Qiang's code
-  std::cout<<"before configure "<<std::endl;
 
   // initialize the segmenter on CPU, GPU or AUTOMATIC
   // TODO:Guillaume: read all this from rosparam
@@ -198,7 +239,6 @@ void init(){
   std::cout<<"segmenter configured"<<std::endl;
 
   // initialize GUI
-  
   GUI controls = HBox().minSize(12,12);
   controls << ( VBox()
                 << Button("reset view").handle("resetView")
@@ -240,6 +280,10 @@ void init(){
   scene.addObject(pc_obj);
   scene.setBounds(1000);
   
+  // initialize a bounding box handler object
+  bboxes = new BBoxes();
+  scene.addObject((SceneObject*)bboxes);
+
   // move out of the camera center 
   Vec pold = scene.getCamera(0).getPosition();
   Vec p = Vec(0,pold[1]+10,pold[2]+10);
@@ -339,8 +383,15 @@ void run(){
     surf = segmenter->getSurfaces();
     ROS_DEBUG_STREAM("extracting surface features ");
     vec_sf = segmenter->getSurfaceFeatures();
+    ROS_DEBUG_STREAM("extracting clusters ");
+    std::vector<PointCloudSegmentPtr> clusters  = segmenter->getClusters(depthImageFiltered, *pc_obj);
     ROS_DEBUG_STREAM("data extracted");
+    
+    bboxes->update(clusters);
+    
+   
 
+    // render images
     gui["hedge"] = segmenter->getEdgeImage();
     gui["hedgefil"] = &depthImageFiltered;
 
