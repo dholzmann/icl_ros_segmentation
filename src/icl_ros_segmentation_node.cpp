@@ -337,6 +337,7 @@ void run(){
 
     // compute the pointcloud
     ROS_DEBUG_STREAM("captured an image ");
+    pc_obj->lock();
     segmenter->computePointCloudFirst(f.d(), *pc_obj);
     ROS_DEBUG_STREAM("pointcloud computed ");
     // create a copy of the depthImage
@@ -373,6 +374,7 @@ void run(){
       segmenter->applySecond(f.d(), *pc_obj);
       ROS_DEBUG_STREAM("segmentation done");
     }
+    pc_obj->unlock();
     // extract data
     std::vector<std::vector<int> > seg;
     std::vector<std::vector<int> > surf;
