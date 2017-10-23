@@ -326,6 +326,16 @@ void init(){
 
 void run(){
 
+
+  static ButtonHandle resetView = gui["resetView"];
+  if(resetView.wasTriggered()){
+    scene.lock();
+    scene.getCamera(1) = scene.getCamera(0);
+    Vec pold = scene.getCamera(0).getPosition();
+    Vec p = Vec(0,pold[1]+10,pold[2]+10);
+    scene.getCamera(1).setPosition(p);
+    scene.unlock();
+  }
   // grab images
   Kinect::Frame f = kinect->grab();
   if (f.isValid())
