@@ -389,8 +389,10 @@ void run(){
     std::vector<PointCloudSegmentPtr> clusters  = segmenter->getClusters(depthImageFiltered, *pc_obj);
     ROS_DEBUG_STREAM("data extracted");
     
+    // update bounding box views (compute and add objects to scene)
+    scene.lock();
     bboxes->update(clusters);
-    
+    scene.unlock();
    
 
     // render images
