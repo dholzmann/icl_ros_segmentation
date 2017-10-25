@@ -138,6 +138,7 @@ void BBoxes::update(std::vector<PointCloudSegmentPtr > &clusters){
 
 //ros callback function
 void getPrimitivesFromROS(const visualization_msgs::MarkerArray::ConstPtr& markerarray){
+	ROS_INFO("get primitives from ros");
 	std::vector<Primitive3DFilter::Primitive3D> rosPrimitives;
 	for(int i = 0; i < markerarray->markers.size(); ++i) {
 		visualization_msgs::Marker marker = markerarray->markers[i];
@@ -477,17 +478,16 @@ void run(){
 
     gui["draw3D"].link(scene.getGLCallback(VIEW_CAM));
     gui["draw3D"].render();
+    ros::spinOnce();
   }
 }
 
 int main(int argc, char* argv[]){
-
   ros::init(argc, argv, "icl_ros_segmentation");
   nh = new ros::NodeHandle();
   
   //subscribe to ros topic
-  
-  ros::Subscriber sub = nh->subscribe<visualization_msgs::MarkerArray>("robot_collision_shape",1,getPrimitivesFromROS);
+  ros::Subscriber sub = nh->subscribe<visualization_msgs::MarkerArray>("/robot_collision_shape",1,getPrimitivesFromROS);
   //pub_pc = nh->advertise<sensor_msgs::PointCloud2> ("segmented_tool_pc", 1);
 
   return ICLApp(argc,argv,"-size|-s(Size=VGA) -fcpu|force-cpu "
@@ -501,6 +501,8 @@ int main(int argc, char* argv[]){
                           "-color-in|-ci(type=kinectc,source=0) "
                           "-depth-unit|-du(unit=raw|mm)"
                           ,init,run).exec();
+  
+  
   ros::shutdown();
   delete nh;
 
