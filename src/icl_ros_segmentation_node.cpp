@@ -44,6 +44,8 @@
 // ROS
 #include <ros/ros.h>
 #include <sensor_msgs/PointCloud.h>
+#include <visualization_msgs/MarkerArray.h>
+#include <visualization_msgs/Marker.h>
 
 // common
 #include <iostream>
@@ -63,22 +65,11 @@ SmartPtr<ConfigurableDepthImageSegmenter> segmenter;
 // ros
 ros::NodeHandle *nh;
 
-//RSB, RST
-#include <rsb/Handler.h>
-#include <rsb/Listener.h>
-#include <rsb/Factory.h>
-#include <rsb/converter/Repository.h>
-#include <rsb/converter/ProtocolBufferConverter.h>
-#include <rst/geometry/Primitive3DFloatSet.pb.h>
-
-
 // for primitive filter
-using namespace rsb;
-using namespace rst::geometry;
 SceneObject *primitive_holder;
 std::vector<Primitive3DFilter::Primitive3D> primitives;
 SmartPtr<Primitive3DFilter> primitiveFilter;
-ListenerPtr primitivesetListener;
+//ListenerPtr primitivesetListener;
 icl::utils::Mutex primitivesMutex;
 
 PointCloudObject *pc_obj;
@@ -145,30 +136,35 @@ void BBoxes::update(std::vector<PointCloudSegmentPtr > &clusters){
   SceneObject::unlock();
 }
 
-//primitive filtering callback function
-void getPrimitivesFromRSB(boost::shared_ptr<Primitive3DFloatSet> evPrimitiveSet){
-  std::vector<Primitive3DFilter::Primitive3D> rsbPrimitives;
-  for(int i = 0; i < evPrimitiveSet->primitives_size(); ++i) {
-    Primitive3DFloat primitiveProto = evPrimitiveSet->primitives(i);
-    Primitive3DFilter::PrimitiveType primitiveType = Primitive3DFilter::CUBE;
-    Primitive3DFloat_PrimitiveType typeRST = primitiveProto.type();
-    if(typeRST == Primitive3DFloat_PrimitiveType_CUBE)
-      primitiveType = Primitive3DFilter::CUBE;
-    else if(typeRST == Primitive3DFloat_PrimitiveType_SPHERE)
-      primitiveType = Primitive3DFilter::SPHERE;
-    else if(typeRST == Primitive3DFloat_PrimitiveType_CYLINDER)
-      primitiveType = Primitive3DFilter::CYLINDER;
-    Translation positionProto = primitiveProto.pose().translation();
-    Vec primitivePosition(positionProto.x()*1000.0, positionProto.y()*1000.0, positionProto.z()*1000.0, 1);
-    Rotation rotation = primitiveProto.pose().rotation();
-    Primitive3DFilter::Quaternion primitiveOrientation(Vec3(rotation.qx(), rotation.qy(), rotation.qz()), rotation.qw());
-    Vec primitiveScale(primitiveProto.scale().x()*1000.0, primitiveProto.scale().y()*1000.0, primitiveProto.scale().z()*1000.0, 1);
-    Primitive3DFilter::Primitive3D primitive(primitiveType, primitivePosition, primitiveOrientation, primitiveScale, 0, primitiveProto.description());
-    rsbPrimitives.push_back(primitive);
-  }
-  primitivesMutex.lock();
-  primitives = rsbPrimitives;
-  primitivesMutex.unlock();
+//ros callback function
+void getPrimitivesFromROS(const visualization_msgs::MarkerArray::ConstPtr& markerarray){
+	std::vector<Primitive3DFilter::Primitive3D> rosPrimitives;
+	for(int i = 0; i < markerarray->markers.size(); ++i) {
+		visualization_msgs::Marker marker = markerarray->markers[i];
+		Primitive3DFilter::PrimitiveType primitiveType = Primitive3DFilter::CUBE;
+		switch(markerarray->markers[i].type){
+			case visualization_msgs::Marker::CYLINDER :
+				primitiveType = Primitive3DFilter::CYLINDER;
+				break;
+			case visualization_msgs::Marker::SPHERE :
+				primitiveType = Primitive3DFilter::SPHERE;
+				break;
+			case visualization_msgs::Marker::CUBE :
+				primitiveType = Primitive3DFilter::CUBE;
+				break;
+			default:
+				//how to handle different types?
+				break;
+		}
+		Vec primitivePosition(markerarray->markers[i].pose.position.x*1000.0, markerarray->markers[i].pose.position.y*1000.0, markerarray->markers[i].pose.position.z*1000.0, 1);
+		Primitive3DFilter::Quaternion primitiveOrientation(Vec3(markerarray->markers[i].pose.orientation.x, markerarray->markers[i].pose.orientation.y, markerarray->markers[i].pose.orientation.z), markerarray->markers[i].pose.orientation.w);
+		Vec primitiveScale(markerarray->markers[i].scale.x*1000.0, markerarray->markers[i].scale.y*1000.0, markerarray->markers[i].scale.z*1000.0, 1);
+		Primitive3DFilter::Primitive3D primitive(primitiveType, primitivePosition, primitiveOrientation, primitiveScale, 0, markerarray->markers[i].text);
+		rosPrimitives.push_back(primitive);
+	}
+	primitivesMutex.lock();
+	primitives = rosPrimitives;
+	primitivesMutex.unlock();
 }
 
 void init(){
@@ -300,20 +296,6 @@ void init(){
 
   if (primitive_filtering)
   {
-    // initialize rsb for primitive filter
-    try {
-      boost::shared_ptr< rsb::converter::ProtocolBufferConverter<Primitive3DFloatSet> >
-        primitiveset_converter(new rsb::converter::ProtocolBufferConverter<Primitive3DFloatSet>());
-      rsb::converter::converterRepository<std::string>()->registerConverter(primitiveset_converter);
-      Factory& factory = getFactory();
-      // TODO:Guillaume: read topic from rosparam
-      Scope primitivesetScope("/nirobots/primitivesetScope");
-      primitivesetListener = factory.createListener(primitivesetScope);
-      primitivesetListener->addHandler(HandlerPtr(new DataFunctionHandler<Primitive3DFloatSet> (&getPrimitivesFromRSB)));
-    } catch(const std::exception& e) {
-      std::cout << e.what() << std::endl;
-    }
-    
 
     // initialize primitive filter and read config from file
     // TODO:Guillaume: read config from rosparam
@@ -502,8 +484,12 @@ int main(int argc, char* argv[]){
 
   ros::init(argc, argv, "icl_ros_segmentation");
   nh = new ros::NodeHandle();
+  
+  //subscribe to ros topic
+  
+  ros::Subscriber sub = nh->subscribe<visualization_msgs::MarkerArray>("robot_collision_shape",1,getPrimitivesFromROS);
   //pub_pc = nh->advertise<sensor_msgs::PointCloud2> ("segmented_tool_pc", 1);
- 
+
   return ICLApp(argc,argv,"-size|-s(Size=VGA) -fcpu|force-cpu "
                           "-fgpu|force-gpu "
                           "-primitive-config|-pc(filename) "

@@ -24,21 +24,21 @@ add_definitions( ${ICL_DEFINITIONS} )
 #include_directories( ${OpenCV_INCLUDE_DIRS} )
 
 # rsb
-find_package(RSB REQUIRED)
-if(RSB_FOUND)
-        include_directories(${RSB_INCLUDE_DIRS})
-        add_definitions(${RSB_DEFINITIONS})
-        add_definitions(${RSB_CFLAGS})
-        message("RSB include is " ${RSB_INCLUDE_DIRS})
-endif()
+#find_package(RSB REQUIRED)
+#if(RSB_FOUND)
+#        include_directories(${RSB_INCLUDE_DIRS})
+#        add_definitions(${RSB_DEFINITIONS})
+#        add_definitions(${RSB_CFLAGS})
+#        message("RSB include is " ${RSB_INCLUDE_DIRS})
+#endif()
 
 # rst
-find_package (RST REQUIRED sandbox)
-IF(RST_FOUND)
-        include_directories(${RST_INCLUDE_DIRS})
-        add_definitions(${RST_CFLAGS} ${RSTSANDBOX_CFLAGS})
-        message("RST include is " ${RST_INCLUDE_DIRS})
-ENDIF()
+#find_package (RST REQUIRED sandbox)
+#IF(RST_FOUND)
+#        include_directories(${RST_INCLUDE_DIRS})
+#        add_definitions(${RST_CFLAGS} ${RSTSANDBOX_CFLAGS})
+#        message("RST include is " ${RST_INCLUDE_DIRS})
+#ENDIF()
 
 ###################################
 ## catkin specific configuration ##
@@ -92,8 +92,8 @@ target_link_libraries(icl_ros_segmentation
 	${ICL_LIBRARIES}
 	${PCL_COMMON_LIBRARIES}
 	${PCL_IO_LIBRARIES}
-  ${RSB_LIBRARIES}
-  ${RST_LIBRARIES} ${RSTSANDBOX_LIBRARIES}
+#  ${RSB_LIBRARIES}
+#  ${RST_LIBRARIES} ${RSTSANDBOX_LIBRARIES}
 )
 
 ## Declare a C++ executable  
@@ -110,8 +110,8 @@ target_link_libraries(icl_ros_segmentation_node
   ${catkin_LIBRARIES}
   ${PCL_COMMON_LIBRARIES}
   ${PCL_IO_LIBRARIES}
-  ${RSB_LIBRARIES}
-  ${RST_LIBRARIES} ${RSTSANDBOX_LIBRARIES}
+#  ${RSB_LIBRARIES}
+#  ${RST_LIBRARIES} ${RSTSANDBOX_LIBRARIES}
   icl_ros_segmentation
 )
 
