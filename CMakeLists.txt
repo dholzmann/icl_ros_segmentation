@@ -23,6 +23,22 @@ add_definitions( ${ICL_DEFINITIONS} )
 #find_package( OpenCV REQUIRED )
 #include_directories( ${OpenCV_INCLUDE_DIRS} )
 
+# rsb
+find_package(RSB REQUIRED)
+if(RSB_FOUND)
+        include_directories(${RSB_INCLUDE_DIRS})
+        add_definitions(${RSB_DEFINITIONS})
+        add_definitions(${RSB_CFLAGS})
+        message("RSB include is " ${RSB_INCLUDE_DIRS})
+endif()
+
+# rst
+find_package (RST REQUIRED sandbox)
+IF(RST_FOUND)
+        include_directories(${RST_INCLUDE_DIRS})
+        add_definitions(${RST_CFLAGS} ${RSTSANDBOX_CFLAGS})
+        message("RST include is " ${RST_INCLUDE_DIRS})
+ENDIF()
 
 ###################################
 ## catkin specific configuration ##
@@ -95,6 +111,34 @@ target_link_libraries(icl_ros_segmentation_node
   icl_ros_segmentation
 )
 
+IF(RSB_FOUND)
+  IF(RST_FOUND)
+    add_library( icl_ros_rsb_segmentation ${LIB_SRC} ${LIB_INC} )
+
+    target_link_libraries(icl_ros_rsb_segmentation
+	${catkin_LIBRARIES}
+	${ICL_LIBRARIES}
+	${PCL_COMMON_LIBRARIES}
+	${PCL_IO_LIBRARIES}
+  	${RSB_LIBRARIES}
+  	${RST_LIBRARIES} ${RSTSANDBOX_LIBRARIES}
+    )
+
+    add_executable(icl_ros_rsb_segmentation_node src/icl_ros_rsb_segmentation_node.cpp src/ConfigurableDepthImageSegmenter.cpp src/ConfigurableDepthImageSegmenter.h) 
+
+    add_dependencies(icl_ros_rsb_segmentation_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+
+    target_link_libraries(icl_ros_rsb_segmentation_node
+    	${ICL_LIBRARIES}
+   	 ${catkin_LIBRARIES}
+    	${PCL_COMMON_LIBRARIES}
+    	${PCL_IO_LIBRARIES}
+    	${RSB_LIBRARIES}
+    	${RST_LIBRARIES} ${RSTSANDBOX_LIBRARIES}
+    	icl_ros_rsb_segmentation
+    )
+  ENDIF()
+ENDIF()
 
 #############
 ## Install ##
@@ -139,4 +183,4 @@ install(TARGETS icl_ros_segmentation_node icl_ros_segmentation
 # endif()
 
 ## Add folders to be run by python nosetests
-# catkin_add_nosetests(test)
+# catkin_add_nosetests(test) 
