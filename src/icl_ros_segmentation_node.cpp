@@ -154,7 +154,7 @@ void getPrimitivesFromROS(const visualization_msgs::MarkerArray::ConstPtr& marke
 				primitiveType = Primitive3DFilter::CUBE;
 				break;
 			default:
-				//TODO:sarah: how to handle different types?
+				//how to handle different types?
 				break;
 		}
 		Vec primitivePosition(markerarray->markers[i].pose.position.x*1000.0, markerarray->markers[i].pose.position.y*1000.0, markerarray->markers[i].pose.position.z*1000.0, 1);
