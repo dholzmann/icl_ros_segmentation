@@ -478,8 +478,8 @@ void run(){
 
     gui["draw3D"].link(scene.getGLCallback(VIEW_CAM));
     gui["draw3D"].render();
-    ros::spinOnce();
   }
+  ros::spinOnce();
 }
 
 int main(int argc, char* argv[]){
