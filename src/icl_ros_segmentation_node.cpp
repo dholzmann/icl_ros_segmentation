@@ -487,7 +487,7 @@ int main(int argc, char* argv[]){
   nh = new ros::NodeHandle();
   
   //subscribe to ros topic
-  ros::Subscriber sub = nh->subscribe<visualization_msgs::MarkerArray>("/robot_collision_shape",1,getPrimitivesFromROS);
+  ros::Subscriber sub = nh->subscribe<visualization_msgs::MarkerArray>("robot_collision_shape",1,getPrimitivesFromROS);
   //pub_pc = nh->advertise<sensor_msgs::PointCloud2> ("segmented_tool_pc", 1);
 
   return ICLApp(argc,argv,"-size|-s(Size=VGA) -fcpu|force-cpu "
