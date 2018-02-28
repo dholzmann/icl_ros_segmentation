@@ -100,8 +100,8 @@ namespace icl{
         addProperty("general.ROI max x","range","[-500,1500]",1200);
         addProperty("general.ROI min y","range","[-1500,800]",-100);
         addProperty("general.ROI max y","range","[-500,1500]",1050);
-        addProperty("general.ROI min z","range","[-500,500]",0);
-        addProperty("general.ROI max z","range","[0,1500]",1050);
+        addProperty("general.ROI min z","range","[-500,1500]",0);
+        addProperty("general.ROI max z","range","[0,2000]",1050);
         addProperty("general.use 3D","flag","",false);
 
         addProperty("pre.enable temporal smoothing","flag","",true);
