@@ -18,6 +18,7 @@ namespace icl{
     geom::Camera depthCam, colorCam;
     utils::Size size;
     std::string desiredDepthUnit;
+    bool isKinect;
     
     Kinect(const utils::Size &size,
            const std::string &cfgCamDepth,  const std::string &cfgCamColor,
@@ -31,7 +32,8 @@ namespace icl{
            const std::string &icl_device_d = "",
            const std::string &icl_device_args_d = "",
            const std::string &icl_device_c = "",
-           const std::string &icl_device_args_c = "");
+           const std::string &icl_device_args_c = "",
+           bool isKinect=true);
 
     class Frame{
       const core::ImgBase *depthImage;

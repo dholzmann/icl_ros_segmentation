@@ -31,9 +31,10 @@
 #pragma once
 
 #include <ICLGeom/FeatureGraphSegmenter.h>
-//#include <FeatureGraphSegmenter.h>
 #include <ICLGeom/PointCloudObject.h>
+#include <ICLGeom/PointCloudCreator.h>
 #include <ICLUtils/Configurable.h>
+#include <ICLCore/DataSegment.h>
 #include <ICLGeom/Camera.h>
 
 namespace icl{
@@ -50,8 +51,12 @@ namespace icl{
       /** Constructs an object of this class. 
           @param mode GPU, CPU and BEST (default) 
           @param depthCam the depth camera*/
-      ConfigurableDepthImageSegmenter(Mode mode, Camera depthCam);
-      ConfigurableDepthImageSegmenter(Mode mode, Camera depthCam, Camera colorCam);
+			ConfigurableDepthImageSegmenter(Mode mode, Camera depthCam,
+																			icl::geom::PointCloudCreator::DepthImageMode depth_mode
+																			= icl::geom::PointCloudCreator::KinectRAW11Bit);
+			ConfigurableDepthImageSegmenter(Mode mode, Camera depthCam, Camera colorCam,
+																			icl::geom::PointCloudCreator::DepthImageMode depth_mode
+																			= icl::geom::PointCloudCreator::KinectRAW11Bit);
   	  
   	  ///Destructor
       ~ConfigurableDepthImageSegmenter();
@@ -60,10 +65,6 @@ namespace icl{
       /** @param depthImage the input depth image
           @param obj the empty pointcloud object for the results (computed in the method) */
       void apply(const core::Img32f &depthImage, PointCloudObject &obj);
-      
-      void computePointCloudFirst(const core::Img32f &depthImage, PointCloudObject &obj);
-      void applySecond(const core::Img32f &depthImage, PointCloudObject &obj);
-      std::vector<PointCloudSegmentPtr>  getClusters(const core::Img32f &depthImage, PointCloudObject &obj);
       
 	  std::vector<geom::SurfaceFeatureExtractor::SurfaceFeature> getSurfaceFeatures();
 
@@ -84,14 +85,16 @@ namespace icl{
   	  /// Returns the colored label image.
       /**        @return the colored label image */  			
       core::Img8u getColoredLabelImage();
-      
-      /// Returns the angle image of the object edge detector
-	    /// /**        @return the angle image */
+
+	  /// Returns the angle image of the object edge detector
+	  /// /**        @return the angle image */
 	  const core::Img32f getAngleImage();
 
       /// Returns the mapped image (the last passed depth image is used for mapping) assumed to be grabbed by the camera cam
       /**       @return the mapped image */
       core::Img8u getMappedColorImage(const core::Img8u &image);
+
+	  void mapImageToDepth(const core::ImgBase *src, core::ImgBase **dst);
       
       /// Returns the surface cluster from the pre-segmentation.
       /**        @return a vector of surfaces. Every entry contains a vector with the point indices */
@@ -101,6 +104,19 @@ namespace icl{
       /**        @return a vector of segments. Every entry contains a vector with the surface indices */
       std::vector<std::vector<int> > getSegments();
       
+	  void setNormals(core::DataSegment<float,4> &normals);
+
+		void setEdgeSegData(core::Img8u &edges, core::Img8u &normal_img);
+
+		void setUseExternalEdges(bool use_external_edges);
+		
+		std::vector<PointCloudSegmentPtr> getClusters(PointCloudObject &obj);
+		
+		//computed in getClusters (for matching reasons)
+		std::vector<std::pair<utils::Point,utils::Point> > getBoundingBoxes2D();
+		
+		int getTableID(core::DataSegment<float,4> &xyz);
+		 std::vector<int> getROI();
             
       private:
 

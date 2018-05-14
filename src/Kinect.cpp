@@ -21,8 +21,9 @@ namespace icl{
                  const std::string &icl_device_d,
                  const std::string &icl_device_args_d,
                  const std::string &icl_device_c,
-                 const std::string &icl_device_args_c):
-    srcSpec(spec),size(size),desiredDepthUnit(desired_depth_unit){
+                 const std::string &icl_device_args_c,
+                 bool is_kinect):
+    srcSpec(spec),size(size),desiredDepthUnit(desired_depth_unit),isKinect(is_kinect){
 
     switch(spec){
     case iclSource:
@@ -65,18 +66,19 @@ namespace icl{
         break;
     }
     
-    depthGrabber.useDesired(depth32f, size, formatMatrix);
-    colorGrabber.useDesired(depth8u, size,formatRGB);
-  
     Camera *cs[] = {&depthCam, &colorCam};
     const std::string *files[] = { &cfgDepth, &cfgColor };
     for(int i=0;i<2;++i){
       *cs[i] = Camera(*files[i]);
-      cs[i]->setName(str("colordepth").substr(i*5,5) + " camera");
-      if(cs[i]->getRenderParams().chipSize != size){
-        throw ICLException(cs[i]->getName() +" file resolution differs from video resolution");
-      }
+      cs[i]->setName(str("depthcolor").substr(i*5,5) + " camera");
     }
+    if(cs[0]->getRenderParams().chipSize != size){//only depth cam resolution fix
+      throw ICLException(cs[0]->getName() +" file resolution differs from video resolution");
+    }
+    
+    depthGrabber.useDesired(depth32f, size, formatMatrix);
+    colorGrabber.useDesired(depth8u, cs[1]->getRenderParams().chipSize,formatRGB);
+  
   }
   
   void Kinect::setGrabberDepthUnit(const std::string &device_d, const std::string &device_args){
@@ -129,7 +131,7 @@ namespace icl{
       }
 
       // convert to raw if mm provided
-        if (ICL_UNLIKELY(desiredDepthUnit == "mm")) {
+        if (ICL_UNLIKELY(desiredDepthUnit == "mm" && isKinect==true)) {
           Img32f *d = const_cast<Img32f*>(imgDepth->as32f());
           for(int x=size.width-1; x >= 0; --x){
             for(int y=size.height-1; y >= 0; --y){

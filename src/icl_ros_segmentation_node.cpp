@@ -39,6 +39,7 @@
 #include <Kinect.h>
 #include <ICLGeom/SurfaceFeatureExtractor.h>
 #include <ICLGeom/Primitive3DFilter.h>
+#include <ICLFilter/MotionSensitiveTemporalSmoothing.h>
 
 
 // ROS
@@ -61,6 +62,9 @@ int KINECT_CAM=0,VIEW_CAM=1;
 // pointers to individual modules 
 SmartPtr<Kinect> kinect;
 SmartPtr<ConfigurableDepthImageSegmenter> segmenter;
+SmartPtr<PointCloudCreator> pointCloudCreator;
+
+filter::MotionSensitiveTemporalSmoothing* temporalSmoothing;
 
 // ros
 ros::NodeHandle *nh;
@@ -173,6 +177,10 @@ void init(){
   // initialize the input streams via a kinect class
   // TODO:Guillaume: read all this from rosparam
   std::string desired_depth_unit = "";
+  bool isKinect=true;
+  if(pa("-no-kinect")){
+    isKinect=false;
+  }
   if (pa("-du"))
     desired_depth_unit = *pa("-du",0);
   if (pa("-pc"))
@@ -185,14 +193,14 @@ void init(){
     else throw ICLException("expecting source type from [sm|raw|depth]");
     kinect = new Kinect(pa("-size"), pa("-d"), pa("-c"),
                         desired_depth_unit, spec,
-                        *pa("-file",1), *pa("-file",2));
+                        *pa("-file",1), *pa("-file",2), "","","","","","","",isKinect);
   }else if (pa("-dir")){
     std::string sDepthFiles=*pa("-dir") + "/depth*";
     std::string sColorFiles=*pa("-dir") + "/color*";
     kinect = new Kinect(pa("-size"), pa("-d"), pa("-c"),
                         desired_depth_unit,
                         Kinect::simFromFileDepth,
-                        sDepthFiles, sColorFiles);
+                        sDepthFiles, sColorFiles, "","","","","","","",isKinect);
   }else if(pa("-ue")){
     std::string props;
     if(pa("-dc-camera-properties")){
@@ -201,7 +209,7 @@ void init(){
     kinect = new Kinect(pa("-size"), pa("-d"), pa("-c"),
                         desired_depth_unit,
                         Kinect::realButExternalColor,
-                        "","", pa("-ue",0), pa("-ue",1), props);
+                        "","", pa("-ue",0), pa("-ue",1), props, "","","","", isKinect);
   } else if (pa("-di") && pa("-ci")) {
     std::string dc_props;
     if(pa("-dc-camera-properties")){
@@ -210,13 +218,27 @@ void init(){
     kinect = new Kinect(pa("-size"), pa("-d"), pa("-c"),
                         desired_depth_unit,
                         Kinect::iclSource, "","","","",dc_props,
-                        pa("-di",0),pa("-di",1),pa("-ci",0),pa("-ci",1));
+                        pa("-di",0),pa("-di",1),pa("-ci",0),pa("-ci",1), isKinect);
   }else{
-    kinect = new Kinect(pa("-size"), pa("-d"), pa("-c"), desired_depth_unit);
+    kinect = new Kinect(pa("-size"), pa("-d"), pa("-c"), desired_depth_unit, Kinect::realCamera,"","","","","","","","","", isKinect);
   }
+
+  if(pa("-no-kinect")){
+    temporalSmoothing = new filter::MotionSensitiveTemporalSmoothing(0, 15);
+  }else{
+    temporalSmoothing = new filter::MotionSensitiveTemporalSmoothing(2047, 15);
+  }
+  temporalSmoothing->setUseCL(true);
 
   // initialize the pointcloud
   pc_obj = new PointCloudObject(kinect->size.width, kinect->size.height,true,false,true); //was  true,true,true at Qiang's code
+                                       
+  if(pa("-no-kinect")){                                     
+    pointCloudCreator = new PointCloudCreator(kinect->depthCam, kinect->colorCam,icl::geom::PointCloudCreator::DistanceToCamPlane);                                  
+  }else{
+    pointCloudCreator = new PointCloudCreator(kinect->depthCam, kinect->colorCam,icl::geom::PointCloudCreator::KinectRAW11Bit);                                  
+  }  
+  pointCloudCreator->setUseCL(false);//texture data extraction only supported in cpp version
 
   // initialize the segmenter on CPU, GPU or AUTOMATIC
   // TODO:Guillaume: read all this from rosparam
@@ -241,6 +263,11 @@ void init(){
                 << Button("reset view").handle("resetView")
                 << CheckBox("Show primitives").handle("showPrimitivesHandle") //for primitives filtering
                 << Prop("segmentation").minSize(10,8)
+                << (VBox().label("temporal smoothing")
+                   << CheckBox("use temporal smoothing",true).handle("useTemporalSmoothing")
+        				   << Slider(1,15,6).out("smoothingSize").label("smoothing size").handle("smoothingSizeHandle")
+        				   << Slider(1,22,10).out("smoothingDiff").label("smoothinh diff").handle("smoothingDiffHandle")
+                   )
                 );
   
   
@@ -331,7 +358,26 @@ void run(){
     // compute the pointcloud
     ROS_DEBUG_STREAM("captured an image ");
     pc_obj->lock();
-    segmenter->computePointCloudFirst(f.d(), *pc_obj);
+//    segmenter->computePointCloudFirst(f.d(), *pc_obj);
+
+    int smoothingSize = gui["smoothingSize"];
+    int smoothingDiff = gui["smoothingDiff"];
+    temporalSmoothing->setFilterSize(smoothingSize);
+    temporalSmoothing->setDifference(smoothingDiff);
+    static core::ImgBase *filteredImage = 0;
+    bool useTempSmoothing = gui["useTemporalSmoothing"];
+    if(useTempSmoothing==true){//temporal smoothing
+      temporalSmoothing->apply(&f.d(),&filteredImage);    
+    }
+    
+    if(useTempSmoothing){
+    	pointCloudCreator->create(*filteredImage->as32f(), *pc_obj,&f.c(), segmenter->getPropertyValue("general.depth scaling"));//1.0);//, 1.0);//, depthScaling);
+    }else{
+      pointCloudCreator->create(f.d(), *pc_obj,&f.c(), segmenter->getPropertyValue("general.depth scaling"));//1.0);//, 1.0);//, depthScaling);
+    }
+
+
+
     ROS_DEBUG_STREAM("pointcloud computed ");
     // create a copy of the depthImage
     Img32f depthImageFiltered = f.d();
@@ -359,12 +405,18 @@ void run(){
     // segment with depthImage cleared from primitives
     if (primitive_filtering)
     {
-      segmenter->applySecond(depthImageFiltered, *pc_obj);
+      segmenter->apply(depthImageFiltered, *pc_obj);
       ROS_DEBUG_STREAM("segmentation after filter done");
     }
     else
     {
-      segmenter->applySecond(f.d(), *pc_obj);
+      //segmenter->applySecond(f.d(), *pc_obj);
+      if(useTempSmoothing==true){
+      	segmenter->apply(*filteredImage->as32f(),*pc_obj);
+			}else{
+      	segmenter->apply(f.d(),*pc_obj);			
+			}
+
       ROS_DEBUG_STREAM("segmentation done");
     }
     pc_obj->unlock();
@@ -379,7 +431,8 @@ void run(){
     ROS_DEBUG_STREAM("extracting surface features ");
     vec_sf = segmenter->getSurfaceFeatures();
     ROS_DEBUG_STREAM("extracting clusters ");
-    std::vector<PointCloudSegmentPtr> clusters  = segmenter->getClusters(depthImageFiltered, *pc_obj);
+//    std::vector<PointCloudSegmentPtr> clusters  = segmenter->getClusters(depthImageFiltered, *pc_obj);
+      std::vector<PointCloudSegmentPtr> clusters = segmenter->getClusters(*pc_obj);
     ROS_DEBUG_STREAM("data extracted");
     
     // update bounding box views (compute and add objects to scene)
@@ -387,6 +440,56 @@ void run(){
     bboxes->update(clusters);
     scene.unlock();
    
+         
+	  core::DataSegment<float,4> xyz = pc_obj->selectXYZH(); 
+    int w = depthImageFiltered.getSize().width;
+    //get 2D(image space) bounding boxes of segments; depthImage/pointcloud coordinates
+               
+    std::vector<std::pair<utils::Point,utils::Point> > bboxes2D = segmenter->getBoundingBoxes2D();
+    
+    //for all depthImage/PointCloud coordinates the corresponding colorImage coordinates
+    core::DataSegment<float,2> colorTex = pointCloudCreator->getColorTexturePoints();
+    
+    std::vector<std::pair<utils::Point,utils::Point> > bboxes2DColor(bboxes2D.size());
+    
+    //direct mapping from depth bbox to color bbox would destroy the axis alignment
+    for(unsigned int i=0; i<bboxes2D.size(); i++){
+    
+      //the 4 edges of the bbox for depth/pointcloud
+      std::vector<utils::Point> p(4);
+      p[0] = utils::Point(bboxes2D[i].first.x,bboxes2D[i].first.y);
+      p[1] = utils::Point(bboxes2D[i].second.x,bboxes2D[i].first.y);
+      p[2] = utils::Point(bboxes2D[i].second.x,bboxes2D[i].second.y);
+      p[3] = utils::Point(bboxes2D[i].first.x,bboxes2D[i].second.y);
+      
+      //the point ids
+      std::vector<int> id(p.size());
+      for(unsigned int j=0; j<p.size(); j++){
+        id[j] = p[j].x+p[j].y*w;
+      }
+      
+      //the corresponding colorImage points
+      std::vector<utils::Point> cp(p.size());
+      for(unsigned int j=0; j<p.size(); j++){
+        cp[j] = utils::Point(colorTex[id[j]][0],colorTex[id[j]][1]);
+      }
+      
+      //recalculate the axis aligned bbox for color
+      std::pair<utils::Point,utils::Point> colorBBox;
+      colorBBox.first=utils::Point(1000000,1000000);
+      colorBBox.second=utils::Point(-1000000,-1000000);
+      for(unsigned int j=0; j<p.size(); j++){
+        if(cp[j].x>=0 && cp[j].y>=0){//point is in visible space
+          if(cp[j].x<colorBBox.first.x) colorBBox.first.x=cp[j].x;
+          if(cp[j].y<colorBBox.first.y) colorBBox.first.y=cp[j].y;
+          if(cp[j].x>colorBBox.second.x) colorBBox.second.x=cp[j].x;
+          if(cp[j].y>colorBBox.second.y) colorBBox.second.y=cp[j].y;
+        }          
+      }
+      bboxes2DColor[i]=colorBBox;
+    }
+
+      
 
     // render images
     gui["hedge"] = segmenter->getEdgeImage();
@@ -499,7 +602,8 @@ int main(int argc, char* argv[]){
                           "-initial-segmenter-options|-so(xml-file-name) "
                           "-depth-in|-di(type=kinectd,source=0) "
                           "-color-in|-ci(type=kinectc,source=0) "
-                          "-depth-unit|-du(unit=raw|mm)"
+                          "-depth-unit|-du(unit=raw|mm) "
+                          "-no-kinect"
                           ,init,run).exec();
   
   
