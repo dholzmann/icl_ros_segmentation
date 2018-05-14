@@ -309,9 +309,9 @@ void init(){
   scene.addObject((SceneObject*)bboxes);
 
   // move out of the camera center 
-  Vec pold = scene.getCamera(0).getPosition();
-  Vec p = Vec(0,pold[1]+10,pold[2]+10);
-  scene.getCamera(1).setPosition(p);
+  //Vec pold = scene.getCamera(0).getPosition();
+  //Vec p = Vec(0,pold[1]+10,pold[2]+10);
+  //scene.getCamera(1).setPosition(p);
 
   DrawHandle3D draw3D = gui["draw3D"];
 
@@ -341,9 +341,9 @@ void run(){
   if(resetView.wasTriggered()){
     scene.lock();
     scene.getCamera(1) = scene.getCamera(0);
-    Vec pold = scene.getCamera(0).getPosition();
-    Vec p = Vec(0,pold[1]+10,pold[2]+10);
-    scene.getCamera(1).setPosition(p);
+    //Vec pold = scene.getCamera(0).getPosition();
+    //Vec p = Vec(0,pold[1]+10,pold[2]+10);
+    //scene.getCamera(1).setPosition(p);
     scene.unlock();
   }
   // grab images
