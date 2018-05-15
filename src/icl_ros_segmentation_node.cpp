@@ -39,14 +39,18 @@
 #include <Kinect.h>
 #include <ICLGeom/SurfaceFeatureExtractor.h>
 #include <ICLGeom/Primitive3DFilter.h>
+#include <ICLGeom/PCLPointCloudObject.h>
 #include <ICLFilter/MotionSensitiveTemporalSmoothing.h>
 
 
 // ROS
 #include <ros/ros.h>
 #include <sensor_msgs/PointCloud.h>
+//#include <sensor_msgs/PointCloud2.h>
 #include <visualization_msgs/MarkerArray.h>
 #include <visualization_msgs/Marker.h>
+
+//#include <pcl_conversions/pcl_conversions.h>
 
 // common
 #include <iostream>
@@ -58,6 +62,8 @@ using icl::utils::pa_init;
 
 HSplit gui;
 int KINECT_CAM=0,VIEW_CAM=1;
+
+ros::Publisher pub_pc;
 
 // pointers to individual modules 
 SmartPtr<Kinect> kinect;
@@ -77,6 +83,7 @@ SmartPtr<Primitive3DFilter> primitiveFilter;
 icl::utils::Mutex primitivesMutex;
 
 PointCloudObject *pc_obj;
+//PCLPointCloudObject<pcl::PointXYZ> *pcl_pc_obj;
 Scene scene;
 
 bool primitive_filtering = false;
@@ -232,6 +239,8 @@ void init(){
 
   // initialize the pointcloud
   pc_obj = new PointCloudObject(kinect->size.width, kinect->size.height,true,false,true); //was  true,true,true at Qiang's code
+//  pcl_pc_obj = new PCLPointCloudObject<pcl::PointXYZ>(kinect->size.width, kinect->size.height);
+       
                                        
   if(pa("-no-kinect")){                                     
     pointCloudCreator = new PointCloudCreator(kinect->depthCam, kinect->colorCam,icl::geom::PointCloudCreator::DistanceToCamPlane);                                  
@@ -267,6 +276,7 @@ void init(){
                    << CheckBox("use temporal smoothing",true).handle("useTemporalSmoothing")
         				   << Slider(1,15,6).out("smoothingSize").label("smoothing size").handle("smoothingSizeHandle")
         				   << Slider(1,22,10).out("smoothingDiff").label("smoothinh diff").handle("smoothingDiffHandle")
+        				   << CheckBox("color pointcloud",false).handle("colorPointcloudHandle")
                    )
                 );
   
@@ -419,6 +429,14 @@ void run(){
 
       ROS_DEBUG_STREAM("segmentation done");
     }
+    
+    
+    bool colorPointcloud = gui["colorPointcloudHandle"];
+    if(colorPointcloud){
+      pc_obj->setColorsFromImage(segmenter->getColoredLabelImage());
+    }
+    
+    
     pc_obj->unlock();
     // extract data
     std::vector<std::vector<int> > seg;
@@ -494,6 +512,51 @@ void run(){
     // render images
     gui["hedge"] = segmenter->getEdgeImage();
     gui["hedgefil"] = &depthImageFiltered;
+    
+/*    pc_obj->setColorsFromImage(segmenter->getColoredLabelImage());
+    pcl_pc_obj->selectXYZH() = pc_obj->selectXYZH();    
+    pcl_pc_obj->selectRGBA32f() = pc_obj->selectRGBA32f();
+    sensor_msgs::PointCloud2::Ptr pc_msg (new sensor_msgs::PointCloud2);
+    pcl::PCLPointCloud2 pcl_pc_obj2;
+    pcl::toPCLPointCloud2(pcl_pc_obj->pcl(),pcl_pc_obj2);
+    pcl_conversions::fromPCL (pcl_pc_obj2, *pc_msg);
+    pub_pc.publish(pc_msg);    
+*/
+
+    sensor_msgs::PointCloud::Ptr pc_msg (new sensor_msgs::PointCloud);
+    core::Img8u labelImg = segmenter->getColoredLabelImage();
+    //DataSegment<float,4> xyz = pc_obj->selectXYZH();
+    DataSegment<float,4> rgba = pc_obj->selectRGBA32f();
+    pc_msg->points.clear();
+    pc_msg->channels.clear();
+    pc_msg->header.frame_id = "camera_link";//"frame_seg";
+    //pcl_conversions::toPCL(ros::Time::now(), pc_msg->header.stamp);
+    sensor_msgs::ChannelFloat32 colorChannel;
+    colorChannel.name="rgb-label";
+    sensor_msgs::ChannelFloat32 colorChannel2;
+    colorChannel2.name="rgb-color";
+    for(int y=0; y<labelImg.getSize().height; y++){
+      for(int x=0; x<labelImg.getSize().width; x++){
+        int i = x+y*labelImg.getSize().width;
+        //pcl::PointXYZRGB p;
+        geometry_msgs::Point32 p;
+        p.x = xyz[i][0]*0.001;
+        p.y = xyz[i][1]*0.001;
+        p.z = xyz[i][2]*0.001;
+        uint32_t rgb = ((uint32_t)labelImg(x,y,0) << 16 | (uint32_t)labelImg(x,y,1) << 8 | (uint32_t)labelImg(x,y,2));
+        float frgb = *reinterpret_cast<float*>(&rgb);
+        
+        uint32_t rgb2 = ((uint32_t)(rgba[i][0]*255) << 16 | (uint32_t)(rgba[i][1]*255) << 8 | (uint32_t)(rgba[i][2]*255));
+        float frgb2 = *reinterpret_cast<float*>(&rgb2);
+        //pc_msg->points.push_back(pcl::PointXYZRGB(p));
+        pc_msg->points.push_back(geometry_msgs::Point32(p));
+        colorChannel.values.push_back(frgb);
+        colorChannel2.values.push_back(frgb2);
+      }
+    }
+    pc_msg->channels.push_back(colorChannel);
+    pc_msg->channels.push_back(colorChannel2);
+    pub_pc.publish(pc_msg);
 
     /* not verified // example code to access data
     DataSegment<float,4> pcs = obj->selectXYZH();
@@ -591,7 +654,7 @@ int main(int argc, char* argv[]){
   
   //subscribe to ros topic
   ros::Subscriber sub = nh->subscribe<visualization_msgs::MarkerArray>("robot_collision_shape",1,getPrimitivesFromROS);
-  //pub_pc = nh->advertise<sensor_msgs::PointCloud2> ("segmented_tool_pc", 1);
+  pub_pc = nh->advertise<sensor_msgs::PointCloud> ("segmented_tool_pc", 1);
 
   return ICLApp(argc,argv,"-size|-s(Size=VGA) -fcpu|force-cpu "
                           "-fgpu|force-gpu "
