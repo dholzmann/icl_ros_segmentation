@@ -33,14 +33,17 @@
 
 #include "ConfigurableDepthImageSegmenter.h"
 #include <ICLIO/GenericGrabber.h>
+#include <ICLQt/Qt.h>
 #include <ICLQt/Application.h>
 #include <ICLGeom/Scene.h>
-#include <ICLQt/Common.h>
+//#include <ICLQt/Common.h>
 #include <Kinect.h>
 #include <ICLGeom/SurfaceFeatureExtractor.h>
 #include <ICLGeom/Primitive3DFilter.h>
 #include <ICLGeom/PCLPointCloudObject.h>
 #include <ICLFilter/MotionSensitiveTemporalSmoothing.h>
+#include <ICLCore/CCFunctions.h>
+#include <ICLCore/OpenCV.h>
 
 
 // ROS
@@ -52,6 +55,9 @@
 
 #include <segmentation_msgs/WorldBelief.h>
 
+#include <cv_bridge/cv_bridge.h>
+#include <sensor_msgs/image_encodings.h>
+
 //#include <pcl_conversions/pcl_conversions.h>
 #include <pcl_ros/point_cloud.h>
 
@@ -62,6 +68,16 @@
 
 using icl::utils::pa;
 using icl::utils::pa_init;
+
+using namespace icl;
+using namespace icl::qt;
+using namespace icl::core;
+using namespace icl::geom;
+using namespace icl::utils;
+using namespace icl::math;
+using namespace icl::filter;
+using namespace icl::io;
+
 
 HSplit gui;
 int KINECT_CAM=0,VIEW_CAM=1;
@@ -585,6 +601,27 @@ void run(){
         wb.object_beliefs[i].axis_aligned_box.dimensions.y=aabb.max.y-aabb.min.y;
         wb.object_beliefs[i].axis_aligned_box.dimensions.z=aabb.max.z-aabb.min.z;
       }
+      
+      cv::Mat *ros_img = icl::core::img_to_mat(&f.c());
+      sensor_msgs::ImagePtr imgMsg = cv_bridge::CvImage(std_msgs::Header(), sensor_msgs::image_encodings::RGB8, *ros_img).toImageMsg();
+      delete ros_img;
+      wb.segmented_image.image=*imgMsg;
+      
+      wb.segmented_image.regions.resize(bboxes2DColor.size());
+      for(int i=0; i<bboxes2DColor.size(); i++){
+        if((bboxes2DColor[i].second.x-bboxes2DColor[i].first.x)>0){
+          wb.segmented_image.regions[i].x_offset=bboxes2DColor[i].first.x;
+          wb.segmented_image.regions[i].y_offset=bboxes2DColor[i].first.y;
+          wb.segmented_image.regions[i].width=bboxes2DColor[i].second.x-bboxes2DColor[i].first.x;
+          wb.segmented_image.regions[i].height=bboxes2DColor[i].second.y-bboxes2DColor[i].first.y;
+        }else{
+          wb.segmented_image.regions[i].x_offset=0;
+          wb.segmented_image.regions[i].y_offset=0;
+          wb.segmented_image.regions[i].width=0;
+          wb.segmented_image.regions[i].height=0;
+        }
+      }
+      
       pub_seg.publish(wb);
     }
     
