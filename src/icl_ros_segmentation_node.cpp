@@ -51,6 +51,7 @@
 #include <visualization_msgs/Marker.h>
 
 //#include <pcl_conversions/pcl_conversions.h>
+#include <pcl_ros/point_cloud.h>
 
 // common
 #include <iostream>
@@ -64,6 +65,7 @@ HSplit gui;
 int KINECT_CAM=0,VIEW_CAM=1;
 
 ros::Publisher pub_pc;
+ros::Publisher pub_pc2;
 
 // pointers to individual modules 
 SmartPtr<Kinect> kinect;
@@ -83,7 +85,7 @@ SmartPtr<Primitive3DFilter> primitiveFilter;
 icl::utils::Mutex primitivesMutex;
 
 PointCloudObject *pc_obj;
-//PCLPointCloudObject<pcl::PointXYZ> *pcl_pc_obj;
+PCLPointCloudObject<pcl::PointXYZRGB> *pcl_pc_obj;
 Scene scene;
 
 bool primitive_filtering = false;
@@ -239,7 +241,7 @@ void init(){
 
   // initialize the pointcloud
   pc_obj = new PointCloudObject(kinect->size.width, kinect->size.height,true,false,true); //was  true,true,true at Qiang's code
-//  pcl_pc_obj = new PCLPointCloudObject<pcl::PointXYZ>(kinect->size.width, kinect->size.height);
+  pcl_pc_obj = new PCLPointCloudObject<pcl::PointXYZRGB>(kinect->size.width, kinect->size.height);
        
                                        
   if(pa("-no-kinect")){                                     
@@ -512,7 +514,8 @@ void run(){
     // render images
     gui["hedge"] = segmenter->getEdgeImage();
     gui["hedgefil"] = &depthImageFiltered;
-    
+
+//PointCloud with Transform to PointCloud2Msg    
 /*    pc_obj->setColorsFromImage(segmenter->getColoredLabelImage());
     pcl_pc_obj->selectXYZH() = pc_obj->selectXYZH();    
     pcl_pc_obj->selectRGBA32f() = pc_obj->selectRGBA32f();
@@ -523,6 +526,28 @@ void run(){
     pub_pc.publish(pc_msg);    
 */
 
+//PointCloud directly
+    pcl_pc_obj->pcl().header.frame_id = "camera_link";
+    //Choose RGB vs ColoredLabel from App
+    //pcl_pc_obj->setColorsFromImage(segmenter->getColoredLabelImage());
+    DataSegment<float,4> xyzh = pc_obj->selectXYZH();
+    DataSegment<float,4> rgba = pc_obj->selectRGBA32f();    
+    DataSegment<float,3> pcl_xyz = pcl_pc_obj->selectXYZ();
+    DataSegment<icl8u,3> pcl_bgr = pcl_pc_obj->selectBGR();
+    for(int i=0; i<pc_obj->getDim(); i++){
+      pcl_xyz[i][0]=xyzh[i][0]*0.001;
+      pcl_xyz[i][1]=xyzh[i][1]*0.001;
+      pcl_xyz[i][2]=xyzh[i][2]*0.001;
+      pcl_bgr[i][0]=(icl8u)(rgba[i][2]*255.);//
+      pcl_bgr[i][1]=(icl8u)(rgba[i][1]*255.);//
+      pcl_bgr[i][2]=(icl8u)(rgba[i][0]*255.);//
+    }
+    pub_pc2.publish(pcl_pc_obj->pcl());
+
+
+//No RGB mapping for both color channels in rviz (only rainbow (HLS?))
+//PointCloudMsg
+/*
     sensor_msgs::PointCloud::Ptr pc_msg (new sensor_msgs::PointCloud);
     core::Img8u labelImg = segmenter->getColoredLabelImage();
     //DataSegment<float,4> xyz = pc_obj->selectXYZH();
@@ -544,7 +569,7 @@ void run(){
         p.y = xyz[i][1]*0.001;
         p.z = xyz[i][2]*0.001;
         uint32_t rgb = ((uint32_t)labelImg(x,y,0) << 16 | (uint32_t)labelImg(x,y,1) << 8 | (uint32_t)labelImg(x,y,2));
-        float frgb = *reinterpret_cast<float*>(&rgb);
+        float frgb = (float)rgb;//*reinterpret_cast<float*>(&rgb);
         
         uint32_t rgb2 = ((uint32_t)(rgba[i][0]*255) << 16 | (uint32_t)(rgba[i][1]*255) << 8 | (uint32_t)(rgba[i][2]*255));
         float frgb2 = *reinterpret_cast<float*>(&rgb2);
@@ -557,6 +582,8 @@ void run(){
     pc_msg->channels.push_back(colorChannel);
     pc_msg->channels.push_back(colorChannel2);
     pub_pc.publish(pc_msg);
+*/
+
 
     /* not verified // example code to access data
     DataSegment<float,4> pcs = obj->selectXYZH();
@@ -655,6 +682,7 @@ int main(int argc, char* argv[]){
   //subscribe to ros topic
   ros::Subscriber sub = nh->subscribe<visualization_msgs::MarkerArray>("robot_collision_shape",1,getPrimitivesFromROS);
   pub_pc = nh->advertise<sensor_msgs::PointCloud> ("segmented_tool_pc", 1);
+  pub_pc2 = nh->advertise<pcl::PointCloud<pcl::PointXYZRGB> > ("segmented_tool_pc2", 1);
 
   return ICLApp(argc,argv,"-size|-s(Size=VGA) -fcpu|force-cpu "
                           "-fgpu|force-gpu "
