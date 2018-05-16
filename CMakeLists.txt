@@ -9,6 +9,7 @@ find_package(catkin REQUIRED COMPONENTS
   sensor_msgs
   pcl_conversions
   cv_bridge
+  segmentation_msgs
 )
 
 find_package(ICL REQUIRED)
@@ -36,7 +37,7 @@ add_definitions( ${ICL_DEFINITIONS} )
 catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES icl_ros_bridge
-  CATKIN_DEPENDS  image_transport sensor_msgs pcl_conversions cv_bridge 
+  CATKIN_DEPENDS  image_transport sensor_msgs pcl_conversions cv_bridge segmentation_msgs
 #  DEPENDS system_lib
 )
 

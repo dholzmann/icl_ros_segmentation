@@ -50,6 +50,8 @@
 #include <visualization_msgs/MarkerArray.h>
 #include <visualization_msgs/Marker.h>
 
+#include <segmentation_msgs/WorldBelief.h>
+
 //#include <pcl_conversions/pcl_conversions.h>
 #include <pcl_ros/point_cloud.h>
 
@@ -66,6 +68,8 @@ int KINECT_CAM=0,VIEW_CAM=1;
 
 ros::Publisher pub_pc;
 ros::Publisher pub_pc2;
+
+ros::Publisher pub_seg;
 
 // pointers to individual modules 
 SmartPtr<Kinect> kinect;
@@ -545,6 +549,47 @@ void run(){
     pub_pc2.publish(pcl_pc_obj->pcl());
 
 
+
+    //world belief msg
+    segmentation_msgs::WorldBelief wb;
+    if(clusters.size()>0){
+      wb.object_beliefs.resize(clusters.size());
+      for(int i = 0; i < clusters.size(); i++){
+        PointCloudSegmentPtr cloud = clusters[i]->flatten();
+        //PCLPointCloudObject<pcl::PointXYZRGB> *pcl_pc = new PCLPointCloudObject<pcl::PointXYZRGB>(1,cloud->getDim());
+        PCLPointCloudObject<pcl::PointXYZRGB> pcl_pc(cloud->getDim(),1);
+        pcl_pc.pcl().header.frame_id = "camera_link";
+        DataSegment<float,4> xyzh = cloud->selectXYZH();
+        DataSegment<float,4> rgba = cloud->selectRGBA32f();    
+        DataSegment<float,3> pcl_xyz = pcl_pc.selectXYZ();
+        DataSegment<icl8u,3> pcl_bgr = pcl_pc.selectBGR();
+        for(int i=0; i<cloud->getDim(); i++){
+          pcl_xyz[i][0]=xyzh[i][0]*0.001;
+          pcl_xyz[i][1]=xyzh[i][1]*0.001;
+          pcl_xyz[i][2]=xyzh[i][2]*0.001;
+          pcl_bgr[i][0]=(icl8u)(rgba[i][2]*255.);//
+          pcl_bgr[i][1]=(icl8u)(rgba[i][1]*255.);//
+          pcl_bgr[i][2]=(icl8u)(rgba[i][0]*255.);//
+        }
+        sensor_msgs::PointCloud2 pc_msg;//::Ptr pc_msg (new sensor_msgs::PointCloud2);
+        pcl::PCLPointCloud2 pcl_pc2;
+        pcl::toPCLPointCloud2(pcl_pc.pcl(),pcl_pc2);
+        pcl_conversions::fromPCL (pcl_pc2, pc_msg);
+        wb.object_beliefs[i].pointcloud = pc_msg;
+
+        PointCloudSegment::AABB aabb = clusters[i]->aabb;
+        wb.object_beliefs[i].axis_aligned_box.pose.position.x=aabb.min.x+(aabb.max.x-aabb.min.x)/2.;
+        wb.object_beliefs[i].axis_aligned_box.pose.position.y=aabb.min.y+(aabb.max.y-aabb.min.y)/2.;
+        wb.object_beliefs[i].axis_aligned_box.pose.position.z=aabb.min.z+(aabb.max.z-aabb.min.z)/2.;
+        wb.object_beliefs[i].axis_aligned_box.dimensions.x=aabb.max.x-aabb.min.x;
+        wb.object_beliefs[i].axis_aligned_box.dimensions.y=aabb.max.y-aabb.min.y;
+        wb.object_beliefs[i].axis_aligned_box.dimensions.z=aabb.max.z-aabb.min.z;
+      }
+      pub_seg.publish(wb);
+    }
+    
+
+
 //No RGB mapping for both color channels in rviz (only rainbow (HLS?))
 //PointCloudMsg
 /*
@@ -683,6 +728,8 @@ int main(int argc, char* argv[]){
   ros::Subscriber sub = nh->subscribe<visualization_msgs::MarkerArray>("robot_collision_shape",1,getPrimitivesFromROS);
   pub_pc = nh->advertise<sensor_msgs::PointCloud> ("segmented_tool_pc", 1);
   pub_pc2 = nh->advertise<pcl::PointCloud<pcl::PointXYZRGB> > ("segmented_tool_pc2", 1);
+  
+  pub_seg = nh->advertise<segmentation_msgs::WorldBelief> ("segmentation_world_belief", 1);
 
   return ICLApp(argc,argv,"-size|-s(Size=VGA) -fcpu|force-cpu "
                           "-fgpu|force-gpu "
