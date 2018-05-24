@@ -600,6 +600,13 @@ void run(){
         wb.object_beliefs[i].axis_aligned_box.dimensions.x=aabb.max.x-aabb.min.x;
         wb.object_beliefs[i].axis_aligned_box.dimensions.y=aabb.max.y-aabb.min.y;
         wb.object_beliefs[i].axis_aligned_box.dimensions.z=aabb.max.z-aabb.min.z;
+        
+        segmentation_msgs::Hypothesis idHypo;
+        idHypo.type="id";
+        idHypo.values.push_back(str(i));
+        idHypo.reliabilities.push_back(1);
+        wb.object_beliefs[i].hypotheses.push_back(idHypo);    
+        
       }
       
       cv::Mat *ros_img = icl::core::img_to_mat(&f.c());
