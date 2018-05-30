@@ -480,8 +480,35 @@ void run(){
     bboxes->update(clusters);
     scene.unlock();
    
-         
-	  core::DataSegment<float,4> xyz = pc_obj->selectXYZH(); 
+    std::vector<std::pair<utils::Point,utils::Point> > bboxes2DColor(clusters.size());
+    for(int i=0; i<clusters.size(); i++){
+      PointCloudSegment::AABB &aabb = clusters[i]->aabb;         
+      std::vector<Vec> wp(8);
+      wp[0] = Vec(aabb.min[0],aabb.min[1],aabb.min[2],1);
+      wp[1] = Vec(aabb.min[0],aabb.min[1],aabb.max[2],1);
+      wp[2] = Vec(aabb.min[0],aabb.max[1],aabb.min[2],1);
+      wp[3] = Vec(aabb.min[0],aabb.max[1],aabb.max[2],1);
+      wp[4] = Vec(aabb.max[0],aabb.min[1],aabb.min[2],1);
+      wp[5] = Vec(aabb.max[0],aabb.min[1],aabb.max[2],1);
+      wp[6] = Vec(aabb.max[0],aabb.max[1],aabb.min[2],1);
+      wp[7] = Vec(aabb.max[0],aabb.max[1],aabb.max[2],1);
+      std::vector<utils::Point32f> cp = kinect->colorCam.project(wp);
+      
+      std::pair<utils::Point,utils::Point> colorBBox;
+      colorBBox.first=utils::Point(1000000,1000000);
+      colorBBox.second=utils::Point(-1000000,-1000000);
+      for(unsigned int j=0; j<cp.size(); j++){
+        if(cp[j].x>=0 && cp[j].y>=0){//point is in visible space
+          if(cp[j].x<colorBBox.first.x) colorBBox.first.x=cp[j].x;
+          if(cp[j].y<colorBBox.first.y) colorBBox.first.y=cp[j].y;
+          if(cp[j].x>colorBBox.second.x) colorBBox.second.x=cp[j].x;
+          if(cp[j].y>colorBBox.second.y) colorBBox.second.y=cp[j].y;
+        }          
+      }
+      bboxes2DColor[i]=colorBBox;
+    }
+
+	  /*core::DataSegment<float,4> xyz = pc_obj->selectXYZH(); 
     int w = depthImageFiltered.getSize().width;
     //get 2D(image space) bounding boxes of segments; depthImage/pointcloud coordinates
                
@@ -528,7 +555,7 @@ void run(){
       }
       bboxes2DColor[i]=colorBBox;
     }
-
+    */
       
 
     // render images
