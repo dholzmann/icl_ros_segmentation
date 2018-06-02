@@ -797,10 +797,10 @@ int main(int argc, char* argv[]){
   
   //subscribe to ros topic
   ros::Subscriber sub = nh->subscribe<visualization_msgs::MarkerArray>("robot_collision_shape",1,getPrimitivesFromROS);
-  pub_pc = nh->advertise<sensor_msgs::PointCloud> ("segmented_tool_pc", 1);
-  pub_pc2 = nh->advertise<pcl::PointCloud<pcl::PointXYZRGB> > ("segmented_tool_pc2", 1);
+  pub_pc = nh->advertise<sensor_msgs::PointCloud> ("segmentation/segmented_tool_pc", 1);
+  pub_pc2 = nh->advertise<pcl::PointCloud<pcl::PointXYZRGB> > ("segmentation/segmented_tool_pc2", 1);
   
-  pub_seg = nh->advertise<segmentation_msgs::WorldBelief> ("segmentation_world_belief", 1);
+  pub_seg = nh->advertise<segmentation_msgs::WorldBelief> ("segmentation/world_belief", 1);
 
   return ICLApp(argc,argv,"-size|-s(Size=VGA) -fcpu|force-cpu "
                           "-fgpu|force-gpu "
