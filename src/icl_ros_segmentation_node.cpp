@@ -574,7 +574,7 @@ void run(){
 */
 
 //PointCloud directly
-    pcl_pc_obj->pcl().header.frame_id = "camera_link";
+    pcl_pc_obj->pcl().header.frame_id = "camera_calibration_frame";
     //Choose RGB vs ColoredLabel from App
     //pcl_pc_obj->setColorsFromImage(segmenter->getColoredLabelImage());
     DataSegment<float,4> xyzh = pc_obj->selectXYZH();
@@ -601,7 +601,7 @@ void run(){
         PointCloudSegmentPtr cloud = clusters[i]->flatten();
         //PCLPointCloudObject<pcl::PointXYZRGB> *pcl_pc = new PCLPointCloudObject<pcl::PointXYZRGB>(1,cloud->getDim());
         PCLPointCloudObject<pcl::PointXYZRGB> pcl_pc(cloud->getDim(),1);
-        pcl_pc.pcl().header.frame_id = "camera_link";
+        pcl_pc.pcl().header.frame_id = "camera_calibration_frame";
         DataSegment<float,4> xyzh = cloud->selectXYZH();
         DataSegment<float,4> rgba = cloud->selectRGBA32f();    
         DataSegment<float,3> pcl_xyz = pcl_pc.selectXYZ();
