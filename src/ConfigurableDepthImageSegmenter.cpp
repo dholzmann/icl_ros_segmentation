@@ -29,7 +29,7 @@
  ***********************************************************************/
 
 #include <ConfigurableDepthImageSegmenter.h>
-#include <ICLGeom/FeatureGraphSegmenter.h>
+#include <FeatureGraphSegmenter.h>
 //#include <ICLGeom/PointCloudCreator.h>
 #include <ICLGeom/ObjectEdgeDetector.h>
 //#include <ICLFilter/MotionSensitiveTemporalSmoothing.h>
@@ -110,6 +110,11 @@ namespace icl{
         addProperty("general.ROI max y","range","[-500,1500]",1050);
         addProperty("general.ROI min z","range","[-500,1500]",0);
         addProperty("general.ROI max z","range","[0,2000]",1050);
+        
+        addProperty("general.img corner ll","range","[0,200]",0);
+        addProperty("general.img corner lr","range","[0,200]",0);
+        addProperty("general.img corner ul","range","[0,200]",0);
+        addProperty("general.img corner ur","range","[0,200]",0);
 
         //addProperty("pre.enable temporal smoothing","flag","",true);
         //addProperty("pre.temporal smoothing size","range","[1,15]:1",6);
@@ -296,6 +301,12 @@ namespace icl{
                                       getPropertyValue("general.ROI max z"));
                              
         }
+        
+        m_data->segmentation->setCornerRemoval(getPropertyValue("general.img corner ll"),
+                                               getPropertyValue("general.img corner lr"),
+                                               getPropertyValue("general.img corner ul"),
+                                               getPropertyValue("general.img corner ur"));
+        
         m_data->segmentation->setMinSurfaceSize(surfaceMinSize);
         m_data->segmentation->setAssignmentParams(surfaceDistance, surfaceRadius);
         m_data->segmentation->setCutfreeParams(cutfreeEuclDist, cutfreePasses, cutfreeTolerance, cutfreeMinAngle);

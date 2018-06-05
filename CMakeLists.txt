@@ -81,7 +81,7 @@ target_link_libraries(icl_ros_segmentation
 
 ## Declare a C++ executable  
 # NEED to add the configurabledepthimagesegmenter here, out of the lib, otherwise ICL version of this file is linked and used)
-add_executable(icl_ros_segmentation_node src/icl_ros_segmentation_node.cpp src/ConfigurableDepthImageSegmenter.cpp src/ConfigurableDepthImageSegmenter.h) 
+add_executable(icl_ros_segmentation_node src/icl_ros_segmentation_node.cpp src/ConfigurableDepthImageSegmenter.cpp src/ConfigurableDepthImageSegmenter.h src/FeatureGraphSegmenter.cpp src/FeatureGraphSegmenter.h) 
 
 ## Add cmake target dependencies of the executable
 ## same as for the library above

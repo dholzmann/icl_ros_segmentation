@@ -30,7 +30,7 @@
 
 #pragma once
 
-#include <ICLGeom/FeatureGraphSegmenter.h>
+#include <FeatureGraphSegmenter.h>
 #include <ICLGeom/PointCloudObject.h>
 #include <ICLGeom/PointCloudCreator.h>
 #include <ICLUtils/Configurable.h>
