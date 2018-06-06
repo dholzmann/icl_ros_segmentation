@@ -399,6 +399,14 @@ namespace icl {
 		    m_data->maskImage=m_data->segUtils->createMask((core::Img32f&)depthImg);
 		  } 
 		  
+		  for(int y=0; y<depthImg.getSize().height; y++){
+		    for(int x=0; x<depthImg.getSize().width; x++){
+		      if(depthImg(x,y,0)==0){
+		        m_data->maskImage(x,y,0)=1;
+		      }
+		    }
+		  }
+		  
 		  for(int x=0; x<m_data->ulCorner; x++){
 		    for(int y=0; y<m_data->ulCorner-x; y++){
 		      m_data->maskImage(x,y,0)=1;
