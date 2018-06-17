@@ -624,6 +624,7 @@ void run(){
         wb.object_beliefs[i].axis_aligned_box.pose.position.x=aabb.min.x+(aabb.max.x-aabb.min.x)/2.;
         wb.object_beliefs[i].axis_aligned_box.pose.position.y=aabb.min.y+(aabb.max.y-aabb.min.y)/2.;
         wb.object_beliefs[i].axis_aligned_box.pose.position.z=aabb.min.z+(aabb.max.z-aabb.min.z)/2.;
+        wb.object_beliefs[i].axis_aligned_box.pose.orientation.w=1.0;
         wb.object_beliefs[i].axis_aligned_box.dimensions.x=aabb.max.x-aabb.min.x;
         wb.object_beliefs[i].axis_aligned_box.dimensions.y=aabb.max.y-aabb.min.y;
         wb.object_beliefs[i].axis_aligned_box.dimensions.z=aabb.max.z-aabb.min.z;
