@@ -171,7 +171,7 @@ void BBoxes::update(std::vector<PointCloudSegmentPtr > &clusters){
 
 //ros callback function
 void getPrimitivesFromROS(const visualization_msgs::MarkerArray::ConstPtr& markerarray){
-	ROS_INFO("get primitives from ros");
+	ROS_DEBUG("get primitives from ros");
 	std::vector<Primitive3DFilter::Primitive3D> rosPrimitives;
 	for(int i = 0; i < markerarray->markers.size(); ++i) {
 		visualization_msgs::Marker marker = markerarray->markers[i];
