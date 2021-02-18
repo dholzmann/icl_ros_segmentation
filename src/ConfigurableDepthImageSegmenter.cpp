@@ -57,14 +57,14 @@ namespace icl{
 	    }
       
       void init(Mode mode) {
-          //temporalSmoothing = new filter::MotionSensitiveTemporalSmoothing(2047, 15);
+          temporalSmoothing = new filter::MotionSensitiveTemporalSmoothing(2047, 15);
          // edgeConf = new EdgeConf();
           if(mode==CPU){
-     //       temporalSmoothing->setUseCL(false);
+            temporalSmoothing->setUseCL(false);
             objectEdgeDetector = new ObjectEdgeDetector(ObjectEdgeDetector::CPU);
             segmentation = new FeatureGraphSegmenter(FeatureGraphSegmenter::CPU);
           }else{
-      //      temporalSmoothing->setUseCL(true);
+            temporalSmoothing->setUseCL(true);
             objectEdgeDetector = new ObjectEdgeDetector(ObjectEdgeDetector::BEST);
             segmentation = new FeatureGraphSegmenter(FeatureGraphSegmenter::BEST);
           }
@@ -72,7 +72,7 @@ namespace icl{
 
       PointCloudCreator *creator;
       ObjectEdgeDetector *objectEdgeDetector;
-      //filter::MotionSensitiveTemporalSmoothing *temporalSmoothing;
+      filter::MotionSensitiveTemporalSmoothing *temporalSmoothing;
       FeatureGraphSegmenter *segmentation;
       Camera depthCamera;
       
@@ -104,11 +104,11 @@ namespace icl{
         addProperty("general.ROI max z","range","[0,1500]",1050);
         addProperty("general.use 3D","flag","",false);
 
-        /*addProperty("pre.enable temporal smoothing","flag","",true);
+        addProperty("pre.enable temporal smoothing","flag","",true);
         addProperty("pre.temporal smoothing size","range","[1,15]:1",6);
         addProperty("pre.temporal smoothing diff","range","[1,22]:1",10);
         addProperty("pre.filter","menu","unfiltered,median3x3,median5x5","median3x3");
-        * */
+        
         addProperty("pre.normal range","range","[1,15]:1",1);
         //addProperty("pre.averaging","flag","",true);
         addProperty("pre.averaging range","range","[1,15]:1",2);
@@ -164,12 +164,26 @@ namespace icl{
     }
 
     void ConfigurableDepthImageSegmenter::computePointCloudFirst(const core::Img32f &depthImage, PointCloudObject &obj){
+      //pre segmentation
+      m_data->temporalSmoothing->setFilterSize(getPropertyValue("pre.temporal smoothing size"));
+      m_data->temporalSmoothing->setDifference(getPropertyValue("pre.temporal smoothing diff"));
+      static core::ImgBase *filteredImage = 0;
+      bool useTempSmoothing = getPropertyValue("pre.enable temporal smoothing");
+      if(useTempSmoothing==true){//temporal smoothing
+        m_data->temporalSmoothing->apply(&depthImage,&filteredImage);    
+      }
+
       obj.lock();
       //create pointcloud
       float depthScaling=getPropertyValue("general.depth scaling");
       GeomColor c(1.,0.,0.,1.);
       obj.selectRGBA32f().fill(c);
-      m_data->creator->create(*depthImage.as32f(), obj, 0, depthScaling);
+      if(useTempSmoothing==true) {
+        m_data->creator->create(*filteredImage->as32f(), obj, 0, depthScaling);
+      }
+      else {
+        m_data->creator->create(*depthImage.as32f(), obj, 0, depthScaling);
+      }
       obj.unlock();
     }
     void ConfigurableDepthImageSegmenter::applySecond(const core::Img32f &depthImage, PointCloudObject &obj){
@@ -184,8 +198,19 @@ namespace icl{
 
       m_data->objectEdgeDetector->setAngleNeighborhoodRange(neighbrange);
       m_data->objectEdgeDetector->setBinarizationThreshold(threshold);
-
-      m_data->edgeImage=m_data->objectEdgeDetector->calculate(*depthImage.as32f(), false, true, false);
+      
+      //pre segmentation
+      m_data->temporalSmoothing->setFilterSize(getPropertyValue("pre.temporal smoothing size"));
+      m_data->temporalSmoothing->setDifference(getPropertyValue("pre.temporal smoothing diff"));
+      static core::ImgBase *filteredImage = 0;
+      bool useTempSmoothing = getPropertyValue("pre.enable temporal smoothing");
+      if(useTempSmoothing==true){//temporal smoothing
+        m_data->temporalSmoothing->apply(&depthImage,&filteredImage);    
+        m_data->edgeImage=m_data->objectEdgeDetector->calculate(*filteredImage->as32f(), false, true, false);
+      }
+      else {
+        m_data->edgeImage=m_data->objectEdgeDetector->calculate(*depthImage.as32f(), false, true, false);
+      }
 
       m_data->objectEdgeDetector->applyWorldNormalCalculation(m_data->depthCamera);
       m_data->normalImage=m_data->objectEdgeDetector->getRGBNormalImage();
@@ -257,10 +282,17 @@ namespace icl{
                                 curvePasses, curveDistance, curveOutlier);
         m_data->segmentation->setRemainingPointsParams(remainingMinSize, remainingEuclDist, remainingRadius, remainingAssignEuclDist, remainingSupportTolerance);
         m_data->segmentation->setGraphCutThreshold(graphcutThreshold);
-        
-        core::Img8u lI=m_data->segmentation->apply(obj.selectXYZH(), m_data->edgeImage, depthImage,  m_data->objectEdgeDetector->getNormals(), 
+        if(useTempSmoothing){
+          core::Img8u lI=m_data->segmentation->apply(obj.selectXYZH(), m_data->edgeImage, *filteredImage->as32f(),  m_data->objectEdgeDetector->getNormals(), 
                           stabelizeSegmentation, useROI, cutfreeEnable, coplanEnable, curveEnable, remainingEnable);
-        obj.setColorsFromImage(lI);
+          obj.setColorsFromImage(lI);
+        }
+        else {
+          core::Img8u lI=m_data->segmentation->apply(obj.selectXYZH(), m_data->edgeImage, depthImage,  m_data->objectEdgeDetector->getNormals(), 
+                          stabelizeSegmentation, useROI, cutfreeEnable, coplanEnable, curveEnable, remainingEnable);
+          obj.setColorsFromImage(lI);
+        }
+        
         
       } 
       
