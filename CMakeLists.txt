@@ -54,7 +54,7 @@ catkin_package(
 #   src/${PROJECT_NAME}/icl_ros_bridge.cpp
 # )
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC -std=c++0x") #
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC -std=c++14")
 
 include_directories(
   ${catkin_INCLUDE_DIRS}
