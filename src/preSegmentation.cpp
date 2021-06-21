@@ -162,7 +162,7 @@ void applyNormalCalculation(Data &data) {
 }
 
 void applyLinearNormalAveraging(Data &data){
-    const int r = data.normalAveragingRange;
+    int r = data.normalAveragingRange;
     
 	for (int y = 0; y < data.height; y++) {
 		for (int x = 0; x < data.width; x++) {
@@ -202,7 +202,7 @@ void applyImageBinarization(Data &data) {
 }
 
 void applyAngleImageCalculation(Data &data) {
-	const int w = data.width, h = data.height;
+	int w = data.width, h = data.height;
     Mat norm;
     if (data.useNormalAveraging == true) {
 		norm = data.avgNormals;
@@ -257,7 +257,7 @@ void applyAngleImageCalculation(Data &data) {
 		}
 	}
 }
-
+/*
 void applyImageBinarization(Mat &binarizedImage, Mat angleImage, int height, int width, double binarizationThreshold) {
 	for (int y = 0; y < height; y++) {
 		for (int x = 0; x < width; x++) {
@@ -414,7 +414,7 @@ void applyNormalCalculation(Mat &filteredImage, Mat &normals, int normalRange, i
         GaussianBlur(normals, normals, Size(normalAveragingRange,normalAveragingRange), 0);
     }
 }
-
+*/
 std::string type2str(int type) {
   std::string r;
 
@@ -438,7 +438,7 @@ std::string type2str(int type) {
   return r;
 }
 
-Mat ICLImg_to_Mat(const icl::core::Img32f &image, int numChannel){
+Mat ICLImg_to_Mat(icl::core::Img32f &image, int numChannel){
     int h = image.getHeight();
     int w = image.getWidth();
     Mat mat = Mat(h, w, CV_MAKE_TYPE(CV_32F, numChannel));
@@ -452,7 +452,7 @@ Mat ICLImg_to_Mat(const icl::core::Img32f &image, int numChannel){
     return mat;
 }
 
-Mat ICLImg_to_Mat(const icl::core::Img8u &image, int numChannel){
+Mat ICLImg_to_Mat(icl::core::Img8u &image, int numChannel){
     int h = image.getHeight();
     int w = image.getWidth();
     Mat mat = Mat(h, w, CV_MAKE_TYPE(CV_8U, numChannel));
@@ -514,6 +514,7 @@ Mat preSeg_calculate(Mat &depthImage, Data &data){
     return data.binarizedImage;
 }
 
+/*
 Mat preSeg_calculate(Mat &depthImage, bool filter, bool average, bool gauss){
     
     int medianFilterSize = 3;
@@ -552,7 +553,7 @@ Mat preSeg_calculate(Mat &depthImage, bool filter, bool average, bool gauss){
     
     return binarizedImage;
 }
-
+*/
 
 int main(int argc, char *argv[]) {
 }

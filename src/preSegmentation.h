@@ -100,13 +100,13 @@ struct Data {
 	    }
 };
 
-void applyLinearNormalAveraging(Mat &normals, Mat &avgNormals, int normalAveragingRange, int height, int width);
-
 float flipAngle(float angle);
 
 float maxAngle(float snr, float snl, float snt, float snb, float snbl, float snbr, float sntl, float sntr);
 
 float scalar(Point4f &a, Point4f &b);
+
+void applyLinearNormalAveraging(Data &data);
 
 void applyImageBinarization(Data &data);
 
@@ -115,26 +115,28 @@ void applyAngleImageCalculation(Data &data);
 void applyGaussianNormalSmoothing(Data &data);
 
 void applyNormalCalculation(Data &data);
-
+/*
 void applyImageBinarization(Mat &binarizedImage, Mat angleImage, int height, int width, double binarizationThreshold);
 
 void applyAngleImageCalculation(Mat &angleI, Mat &norm, int height, int width, int neighborhoodRange, int neighborhoodMode);
 
+void applyLinearNormalAveraging(Mat &normals, Mat &avgNormals, int normalAveragingRange, int height, int width);
+
 //void applyGaussianNormalSmoothing(Mat &normalImage, Size size);
 
 void applyNormalCalculation(Mat &filteredImage, Mat &normals, int normalRange, int normalAveragingRange, bool gauss, bool average, int height, int width);
-
+*/
 std::string type2str(int type);
 
-Mat ICLImg_to_Mat(const icl::core::Img32f &image, int numChannel);
+Mat ICLImg_to_Mat(icl::core::Img32f &image, int numChannel);
 
-Mat ICLImg_to_Mat(const icl::core::Img8u &image, int numChannel);
+Mat ICLImg_to_Mat(icl::core::Img8u &image, int numChannel);
 
 void Mat_to_ICLImg(icl::core::Img32f &image, Mat mat, int numChannel);
 
 void Mat_to_ICLImg(icl::core::Img8u &image, Mat mat, int numChannel);
 
-Mat preSeg_calculate(Mat &depthImage, bool filter, bool average, bool gauss);
+//Mat preSeg_calculate(Mat &depthImage, bool filter, bool average, bool gauss);
 
 Mat preSeg_calculate(Mat &depthImage, Data &data);
 }
