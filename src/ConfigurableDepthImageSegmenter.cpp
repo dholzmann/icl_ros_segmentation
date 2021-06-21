@@ -226,6 +226,7 @@ namespace icl{
 
       int h = depthImage.getHeight();
       int w = depthImage.getWidth();
+      EdgeDetector::Data data(usedFilter, useAveraging, usedAngle, usedSmoothing, normalrange, neighbrange, threshold, avgrange, h, w);
       cv::Mat depth_image = cv::Mat(h, w, CV_32FC1);
       
       icl::core::Img<float> d = *depthImage.as32f();
@@ -233,11 +234,11 @@ namespace icl{
 
       for(int i=0; i < h; i++){
         for(int j=0; j<w; j++){
-          int idx = j + w * i;
-          depth_image.at<float>(i, j) = d(i, j,0);
+          depth_image.at<float>(i, j,0) = d(i, j,0);
         }
       }
-      depth_image = EdgeDetector::preSeg_calculate(depth_image, true, true, true);
+      //depth_image = EdgeDetector::preSeg_calculate(depth_image, true, true, true);
+      depth_image = EdgeDetector::preSeg_calculate(depth_image, data);
 
       for(int i=0; i < h; i++){
         for(int j=0; j<w; j++){

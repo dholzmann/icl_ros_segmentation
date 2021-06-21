@@ -10,7 +10,7 @@
 using namespace cv;
 namespace EdgeDetector{
 
-//typedef struct { float x, y, z, w; } Point4f;
+
 
 Mat getPCfromDepth(Mat &depth_image, Mat &calibration, int &height, int &width){
     Mat pointCloud = Mat::zeros(depth_image.size(), CV_32FC3);
@@ -68,34 +68,6 @@ void applyWorldNormalCalculation(Mat &normalImage, Mat &avgNormals, Mat &worldNo
 	}
 }
 
-void applyLinearNormalAveraging(Mat &normals, Mat &avgNormals, int normalAveragingRange, int height, int width){
-    const int r = normalAveragingRange;
-    Mat avgNormalsA(height, width, CV_32FC4);
-	for (int y = 0; y < height; y++) {
-		for (int x = 0; x < width; x++) {
-			if (y < r || y >= height - r || x < r
-					|| x >= width - r) {
-				avgNormals.at<Point4f>(y, x) = normals.at<Point4f>(y, x);
-			} else {
-				Point4f avg;
-				avg.x = 0, avg.y = 0, avg.z = 0, avg.w = 0;
-				for (int sx = -r; sx <= r; sx++) {
-					for (int sy = -r; sy <= r; sy++) {
-						avg.x += normals.at<Point4f>((x + sx), (y + sy)).x;
-                        avg.y += normals.at<Point4f>((x + sx), (y + sy)).y;
-						avg.z += normals.at<Point4f>((x + sx), (y + sy)).z;
-					}
-				}
-				avg.x /= ((1 + 2 * r) * (1 + 2 * r));
-				avg.y /= ((1 + 2 * r) * (1 + 2 * r));
-				avg.z /= ((1 + 2 * r) * (1 + 2 * r));
-				avg.w = 1;
-				avgNormals.at<Point4f>(y, x) = avg;
-			}
-		}
-	}
-}
-
 float flipAngle(float angle){
     if (angle < cos(M_PI / 2)){
 	    angle = cos(M_PI - acos(angle));
@@ -132,6 +104,158 @@ float maxAngle(float snr, float snl, float snt, float snb,
 
 float scalar(Point4f &a, Point4f &b){
     return (a.x * b.x + a.y * b.y + a.z * b.z);
+}
+
+void applyNormalCalculation(Data &data) {
+    int r = data.normalRange;
+    for (int y = 0; y < data.height; y++) {
+        for (int x = 0; x < data.width; x++) {
+            //int i = x + width * y;
+            //std::cout << y << "," << x << std::endl;
+            //std::cout << filteredImage.at<float>(532+r, 2-r) << std::endl;
+            //std::cout << filteredImage.at<float>(532-r, 2-r) << std::endl;
+            if (y < r || y >= data.height- r || x < r || x >= data.width - r){
+                Point4f* p = data.normals.ptr<Point4f>(y, x);
+                p->x = 0;
+                p->y = 0;
+                p->z = 0;
+            } else {
+                // cross product normal determination
+                
+                float fa1[3], fb1[3], n1[3], n01[3];
+                
+                fa1[0] = (x + r) - (x - r);
+				fa1[1] = (y - r) - (y - r);
+				//fa1[2] = filteredImage.at<float>(x + r, y - r)
+				//		- filteredImage.at<float>(x - r, y - r);
+                fa1[2] = data.filteredImage.at<float>(y - r, x + r)
+						- data.filteredImage.at<float>(y - r, x - r);
+                
+				fb1[0] = (x) - (x - r);
+				fb1[1] = (y + r) - (y - r);
+				//fb1[2] = filteredImage.at<float>(x, y + r)
+				//		- filteredImage.at<float>(x - r, y - r);
+                fb1[2] = data.filteredImage.at<float>(y + r, x)
+						- data.filteredImage.at<float>(y - r, x - r);
+                
+				n1[0] = fa1[1] * fb1[2] - fa1[2] * fb1[1];
+				n1[1] = fa1[2] * fb1[0] - fa1[0] * fb1[2];
+				n1[2] = fa1[0] * fb1[1] - fa1[1] * fb1[0];
+                
+                float norm = sqrt(pow(n1[0],2)+ pow(n1[1],2) + pow(n1[2],2));
+				n01[0] = n1[0] / norm;
+				n01[1] = n1[1] / norm;
+				n01[2] = n1[2] / norm;
+                
+                data.normals.ptr<Point4f>(y, x)->x = n01[0];
+			    data.normals.ptr<Point4f>(y, x)->y = n01[1];
+				data.normals.ptr<Point4f>(y, x)->z = n01[2];
+				data.normals.ptr<Point4f>(y, x)->w = 1;
+            }
+        }
+    }
+    if (data.useNormalAveraging && !data.useGaussSmoothing) {
+        applyLinearNormalAveraging(data);
+    } else if (data.useNormalAveraging && data.useGaussSmoothing) {
+        GaussianBlur(data.normals, data.avgNormals, Size(data.normalAveragingRange,data.normalAveragingRange), 0);
+    }
+}
+
+void applyLinearNormalAveraging(Data &data){
+    const int r = data.normalAveragingRange;
+    
+	for (int y = 0; y < data.height; y++) {
+		for (int x = 0; x < data.width; x++) {
+			if (y < r || y >= data.height - r || x < r
+					|| x >= data.width - r) {
+				data.avgNormals.at<Point4f>(y, x) = data.normals.at<Point4f>(y, x);
+			} else {
+				Point4f avg;
+				avg.x = 0, avg.y = 0, avg.z = 0, avg.w = 0;
+				for (int sx = -r; sx <= r; sx++) {
+					for (int sy = -r; sy <= r; sy++) {
+						avg.x += data.normals.at<Point4f>((x + sx), (y + sy)).x;
+                        avg.y += data.normals.at<Point4f>((x + sx), (y + sy)).y;
+						avg.z += data.normals.at<Point4f>((x + sx), (y + sy)).z;
+					}
+				}
+				avg.x /= ((1 + 2 * r) * (1 + 2 * r));
+				avg.y /= ((1 + 2 * r) * (1 + 2 * r));
+				avg.z /= ((1 + 2 * r) * (1 + 2 * r));
+				avg.w = 1;
+				data.avgNormals.at<Point4f>(y, x) = avg;
+			}
+		}
+	}
+}
+
+void applyImageBinarization(Data &data) {
+	for (int y = 0; y < data.height; y++) {
+		for (int x = 0; x < data.width; x++) {
+			if (data.angleImage.at<float>(x, y) > data.binarizationThreshold) {
+				data.binarizedImage.at<float>(x, y) = 255;
+			} else {
+				data.binarizedImage.at<float>(x, y) = 0;
+			}
+		}
+	}
+}
+
+void applyAngleImageCalculation(Data &data) {
+	const int w = data.width, h = data.height;
+    Mat norm;
+    if (data.useNormalAveraging == true) {
+		norm = data.avgNormals;
+	} else {
+		norm = data.normals;
+	}
+	for (int y = 0; y < h; y++) {
+		for (int x = 0; x < w; x++) {
+			if (y < data.neighborhoodRange
+					|| y >= h - (data.neighborhoodRange)
+					|| x < data.neighborhoodRange
+					|| x >= w - (data.neighborhoodRange)) {
+				data.angleImage.at<float>(y, x) = 0;
+			} else {
+				float snr = 0; //sum right
+				float snl = 0; //sum left
+				float snt = 0; //sum top
+				float snb = 0; //sum bottom
+				float sntr = 0; //sum top-right
+				float sntl = 0; //sum top-left
+				float snbr = 0; //sum bottom-right
+				float snbl = 0; //sum bottom-left
+				for (int z = 1; z <= data.neighborhoodRange; z++) {
+					//angle between normals
+                    snr += flipAngle(scalar(norm.at<Point4f>(y, x),(norm.at<Point4f>(y, x+z))));
+					snl += flipAngle(scalar(norm.at<Point4f>(y, x),(norm.at<Point4f>(y, x-z))));
+					snt += flipAngle(scalar(norm.at<Point4f>(y, x),(norm.at<Point4f>(y+z, x))));
+					snb += flipAngle(scalar(norm.at<Point4f>(y, x),(norm.at<Point4f>(y-z, x))));
+					sntr += flipAngle(scalar(norm.at<Point4f>(y, x),(norm.at<Point4f>(y+z, x+z))));
+					sntl += flipAngle(scalar(norm.at<Point4f>(y, x),(norm.at<Point4f>(y+z, x-z))));
+					snbr += flipAngle(scalar(norm.at<Point4f>(y, x),(norm.at<Point4f>(y-z, x+z))));
+					snbl += flipAngle(scalar(norm.at<Point4f>(y, x),(norm.at<Point4f>(y-z, x-z))));
+				}
+				snr /= data.neighborhoodRange;
+				snl /= data.neighborhoodRange;
+				snt /= data.neighborhoodRange;
+				snb /= data.neighborhoodRange;
+				sntr /= data.neighborhoodRange;
+				sntl /= data.neighborhoodRange;
+				snbr /= data.neighborhoodRange;
+				snbl /= data.neighborhoodRange;
+
+				if (data.neighborhoodMode == 0) {//max
+					data.angleImage.at<float>(y, x) = maxAngle(snr, snl, snt, snb,
+                                            snbl, snbr, sntl, sntr);
+				} else if (data.neighborhoodMode == 1) {//mean
+					data.angleImage.at<float>(y, x) = (snr + snl + snt + snb
+							+ sntr + sntl + snbr + snbl) / 8;
+				} else {
+				}
+			}
+		}
+	}
 }
 
 void applyImageBinarization(Mat &binarizedImage, Mat angleImage, int height, int width, double binarizationThreshold) {
@@ -208,8 +332,32 @@ void applyAngleImageCalculation(Mat &angleI, Mat &norm, int height, int width, i
 	}
 }
 
-void applyGaussianNormalSmoothing(Mat &normalImage, Size size){
-    GaussianBlur(normalImage, normalImage, size, 0);
+void applyLinearNormalAveraging(Mat &normals, Mat &avgNormals, int normalAveragingRange, int height, int width){
+    const int r = normalAveragingRange;
+    
+	for (int y = 0; y < height; y++) {
+		for (int x = 0; x < width; x++) {
+			if (y < r || y >= height - r || x < r
+					|| x >= width - r) {
+				avgNormals.at<Point4f>(y, x) = normals.at<Point4f>(y, x);
+			} else {
+				Point4f avg;
+				avg.x = 0, avg.y = 0, avg.z = 0, avg.w = 0;
+				for (int sx = -r; sx <= r; sx++) {
+					for (int sy = -r; sy <= r; sy++) {
+						avg.x += normals.at<Point4f>((x + sx), (y + sy)).x;
+                        avg.y += normals.at<Point4f>((x + sx), (y + sy)).y;
+						avg.z += normals.at<Point4f>((x + sx), (y + sy)).z;
+					}
+				}
+				avg.x /= ((1 + 2 * r) * (1 + 2 * r));
+				avg.y /= ((1 + 2 * r) * (1 + 2 * r));
+				avg.z /= ((1 + 2 * r) * (1 + 2 * r));
+				avg.w = 1;
+				avgNormals.at<Point4f>(y, x) = avg;
+			}
+		}
+	}
 }
 
 void applyNormalCalculation(Mat &filteredImage, Mat &normals, int normalRange, int normalAveragingRange, bool gauss, bool average, int height, int width)  {
@@ -290,8 +438,84 @@ std::string type2str(int type) {
   return r;
 }
 
+Mat ICLImg_to_Mat(const icl::core::Img32f &image, int numChannel){
+    int h = image.getHeight();
+    int w = image.getWidth();
+    Mat mat = Mat(h, w, CV_MAKE_TYPE(CV_32F, numChannel));
+    for(int i=0; i < h; i++){
+        for(int j=0; j<w; j++){
+            for(int k=0; k<numChannel; k++) {
+                mat.at<float>(i, j, 0) = image(i, j,0);
+            }
+        }
+      }
+    return mat;
+}
+
+Mat ICLImg_to_Mat(const icl::core::Img8u &image, int numChannel){
+    int h = image.getHeight();
+    int w = image.getWidth();
+    Mat mat = Mat(h, w, CV_MAKE_TYPE(CV_8U, numChannel));
+    for(int i=0; i < h; i++){
+        for(int j=0; j<w; j++){
+            for(int k=0; k<numChannel; k++) {
+                mat.at<int8_t>(i, j, 0) = image(i, j,0);
+            }
+        }
+      }
+    return mat;
+}
+
+void Mat_to_ICLImg(icl::core::Img32f &image, Mat mat, int numChannel){
+    int h = image.getHeight();
+    int w = image.getWidth();
+    for(int i=0; i < h; i++){
+        for(int j=0; j<w; j++){
+            for(int k = 0; k < numChannel; k++){
+                image(i, j, 0) = mat.at<float>(i, j);
+            }
+        }
+      }
+}
+
+void Mat_to_ICLImg(icl::core::Img8u &image, Mat mat, int numChannel){
+    int h = image.getHeight();
+    int w = image.getWidth();
+    for(int i=0; i < h; i++){
+        for(int j=0; j<w; j++){
+            for(int k = 0; k < numChannel; k++){
+                image(i, j, 0) = mat.at<int8_t>(i, j);
+            }
+        }
+      }
+}
+
+Mat preSeg_calculate(Mat &depthImage, Data &data){
+    std::vector<int> size = {data.height, data.width, 3};
+    /*
+    Mat normals = Mat(height, width, CV_32FC4);
+    Mat angleImage = Mat(height, width, CV_32FC1);
+    Mat binarizedImage = Mat(height, width, CV_32FC1);
+    Mat filteredImage = Mat::zeros(height, width, CV_32FC1);
+    */
+    if(data.usedFilterFlag){
+        medianBlur(depthImage, data.filteredImage, data.medianFilterSize);
+    }
+
+    applyNormalCalculation(data);
+    applyAngleImageCalculation(data);
+	//applyImageBinarization(binarizedImage, angleImage, height, width, binarizationThreshold);
+    cv::threshold(data.angleImage, data.binarizedImage, data.binarizationThreshold, 255, CV_THRESH_BINARY);
+    cv::rotate(data.normals, data.normals, cv::ROTATE_90_COUNTERCLOCKWISE);
+    imshow("normal", data.normals);
+    cv::waitKey(1);
+    data.binarizedImage.convertTo(data.binarizedImage, CV_8UC1);
+    
+    return data.binarizedImage;
+}
+
 Mat preSeg_calculate(Mat &depthImage, bool filter, bool average, bool gauss){
-    /*ObjectEdgeDetectorData config*/
+    
     int medianFilterSize = 3;
     int normalRange = 2;
     int normalAveragingRange = 5;
@@ -300,7 +524,7 @@ Mat preSeg_calculate(Mat &depthImage, bool filter, bool average, bool gauss){
 	double binarizationThreshold = 0.89;
 	int useNormalAveraging = true;
 	int useGaussSmoothing = false;
-    /*ObjectEdgeDetectorData config end*/
+    
 
     int height = depthImage.rows;
     int width = depthImage.cols;
@@ -316,92 +540,21 @@ Mat preSeg_calculate(Mat &depthImage, bool filter, bool average, bool gauss){
     }
 
     applyNormalCalculation(filteredImage, normals, normalRange, normalAveragingRange, gauss, average, height, width);
+    cv::rotate(normals, normals, cv::ROTATE_90_COUNTERCLOCKWISE);
+    imshow("normal", normals);
     applyAngleImageCalculation(angleImage, normals, height, width, neighborhoodRange, neighborhoodMode);
 	//applyImageBinarization(binarizedImage, angleImage, height, width, binarizationThreshold);
     cv::threshold(angleImage, binarizedImage, binarizationThreshold, 255, CV_THRESH_BINARY);
 
-    imshow("normal", normals);
+    
     cv::waitKey(1);
     binarizedImage.convertTo(binarizedImage, CV_8UC1);
+    
     return binarizedImage;
 }
 
 
 int main(int argc, char *argv[]) {
-    // create windows for the images
-    /*
-    const std::string depth = "Depth Image";
-    const std::string color = "Color Image";
-    const std::string binary = "Binarized Image";
-    namedWindow(depth, WINDOW_AUTOSIZE);
-    namedWindow(color, WINDOW_AUTOSIZE);
-    namedWindow(binary, WINDOW_AUTOSIZE);
-
-    // open bag file
-    rosbag::Bag bag;
-    bag.open("/home/dennis/Downloads/rgbd_dataset_freiburg2_dishes.bag");
-
-    rosbag::View view(bag);
-
-
-    std::vector<geometry_msgs::TransformStamped> transforms;
-
-    for(rosbag::MessageInstance msg_instance: view){
-        sensor_msgs::ImageConstPtr image_msg = msg_instance.instantiate<sensor_msgs::Image>();
-        sensor_msgs::CameraInfoConstPtr cam_info = msg_instance.instantiate<sensor_msgs::CameraInfo>();
-        tf::tfMessageConstPtr tf_msg = msg_instance.instantiate<tf::tfMessage>();
-
-        if (tf_msg != NULL){
-            std::vector<geometry_msgs::TransformStamped> transforms = tf_msg->transforms;
-            //std::cout << transforms[0] << std::endl;
-            //std::cout << transforms[1] << std::endl;
-        }
-
-
-        Mat pointCloud;
-        Mat image;
-        Mat K;
-        int height;
-        int width;
-
-        if(image_msg != NULL){
-            std::string window;
-            if(image_msg->encoding == "32FC1") {
-                cv_bridge::CvImagePtr depth_image_ptr;
-                try {
-                    depth_image_ptr = cv_bridge::toCvCopy(image_msg);
-                } catch (cv_bridge::Exception& e) {
-                    std::cout << "cv_bridge exception" << std::endl;
-                }
-                // Get depth data and apply pre segmentation
-                Mat depth_image = Mat(depth_image_ptr->image.rows, depth_image_ptr->image.cols, CV_32FC1);
-                //Mat result_image = pre_segmentation(depth_image, true, true, true);
-                image = depth_image_ptr->image;
-                //std::cout << type2str(image.type()) << std::endl;
-                imshow(binary, preSeg_calculate(image, true, true, true));
-                cv::waitKey(1);
-                window = depth;
-            } else if(image_msg->encoding == "rgb8" || image_msg->encoding == "bgr8") {
-                cv_bridge::CvImageConstPtr color_image_ptr;
-                try{
-                    color_image_ptr = cv_bridge::toCvShare(image_msg, sensor_msgs::image_encodings::BGR8);
-                } catch (cv_bridge::Exception& e) {
-                    std::cout << "cv_bridge exception" << std::endl;
-                }
-                image = color_image_ptr->image;
-                window = color;
-            } else {
-                std::cout << "Unknown Image encoding" << std::endl;
-                exit(-1);
-            }
-            imshow(window, image);
-            cv::waitKey(1);
-        }
-    }
-    bag.close();
-    std::cout << "finished." << std::endl;
-    return 0;
-    */
 }
 
 }
