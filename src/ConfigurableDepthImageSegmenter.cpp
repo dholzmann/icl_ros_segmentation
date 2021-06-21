@@ -223,14 +223,35 @@ namespace icl{
 
       m_data->objectEdgeDetector->setAngleNeighborhoodRange(neighbrange);
       m_data->objectEdgeDetector->setBinarizationThreshold(threshold);
-		 
+
+      int h = depthImage.getHeight();
+      int w = depthImage.getWidth();
+      cv::Mat depth_image = cv::Mat(h, w, CV_32FC1);
+      
+      icl::core::Img<float> d = *depthImage.as32f();
+      icl::core::Img8u edge(depthImage.getSize(), 1);
+
+      for(int i=0; i < h; i++){
+        for(int j=0; j<w; j++){
+          int idx = j + w * i;
+          depth_image.at<float>(i, j) = d(i, j,0);
+        }
+      }
+      depth_image = EdgeDetector::preSeg_calculate(depth_image, true, true, true);
+
+      for(int i=0; i < h; i++){
+        for(int j=0; j<w; j++){
+          edge(i, j, 0) = depth_image.at<float>(i, j);
+        }
+      }
+      m_data->edgeImage=edge;
 			if (!m_data->use_extern_edge_image) {
 				/*if(useTempSmoothing==true){
 					m_data->edgeImage=m_data->objectEdgeDetector->calculate(*filteredImage->as32f(), usedFilterFlag,
 																								 useAveraging, usedSmoothingFlag);
 				}else{*/
-					m_data->edgeImage=m_data->objectEdgeDetector->calculate(*depthImage.as32f(), usedFilterFlag,
-																								 useAveraging, usedSmoothingFlag);
+					//m_data->edgeImage=m_data->objectEdgeDetector->calculate(*depthImage.as32f(), usedFilterFlag,
+					//																			 useAveraging, usedSmoothingFlag);
 				//}
 				m_data->objectEdgeDetector->applyWorldNormalCalculation(m_data->depthCamera);
 				m_data->normalImage=m_data->objectEdgeDetector->getRGBNormalImage();

@@ -64,9 +64,11 @@ include_directories(src)
 
 set(LIB_SRC
 	src/Kinect.cpp
+	src/preSegmentation.cpp
 	)
 set(LIB_INC
 	src/Kinect.h
+	src/preSegmentation.h
 )
 
 ## Declare a C++ library

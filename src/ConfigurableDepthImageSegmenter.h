@@ -37,6 +37,10 @@
 #include <ICLCore/DataSegment.h>
 #include <ICLGeom/Camera.h>
 
+#include <opencv2/opencv.hpp>
+#include "preSegmentation.h"
+
+
 namespace icl{
   namespace geom{
     /**
