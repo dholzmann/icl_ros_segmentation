@@ -46,12 +46,21 @@ struct Data {
         bool usedSmoothingFlag = true;
         int height;
         int width;
+
+        int kNorm = 1;
+        int kL = 0;
+        int kSize = 1;
+        int rowSize = 1;
+
         Mat normals;
         Mat avgNormals;
         Mat filteredImage;
         Mat angleImage;
         Mat binarizedImage;
         Mat normalImage;
+        Mat rawImage;
+        Mat kernel;
+        Mat avgNormalsA;
 
 		Data( std::string usedFilter, bool useAveraging, std::string usedAngle, std::string usedSmoothing, int normalrange,
             int neighbrange, float threshold, int avgrange, int h, int w){
@@ -85,15 +94,33 @@ struct Data {
             width = w;
             normals = Mat(height, width, CV_32FC4);
             avgNormals = Mat(height, width, CV_32FC4);
-            //Mat worldNormals;
-            //Mat normalsA;
-            //Mat avgNormalsA;
-            //Mat worldNormalsA;
-            //Mat rawImage;
             filteredImage = Mat::zeros(height, width, CV_32FC1);
             angleImage = Mat(height, width, CV_32FC1);
             binarizedImage = Mat(height, width, CV_32FC1);
-            normalImage;
+            avgNormalsA = Mat(height, width, CV_32FC4);
+
+            int kernelSize = normalAveragingRange;
+            if (kernelSize <= 1) {
+                // nothing!
+            } else if (kernelSize <= 3) {
+                kNorm = 16.;
+                kL = 1;
+                kSize = 3 * 3;
+                rowSize = 3;
+                kernel = getGaussianKernel(kernelSize, -1, CV_32F);
+            } else if (kernelSize <= 5) {
+                kNorm = 256.;
+                kL = 2;
+                kSize = 5 * 5;
+                rowSize = 5;
+                kernel = getGaussianKernel(kernelSize, -1, CV_32F);
+            } else {
+                kNorm = 4096.;
+                kL = 3;
+                kSize = 7 * 7;
+                rowSize = 7;
+                kernel = getGaussianKernel(7, -1, CV_32F);
+            }
 	    }
 
 	    ~Data() {
@@ -115,28 +142,18 @@ void applyAngleImageCalculation(Data &data);
 void applyGaussianNormalSmoothing(Data &data);
 
 void applyNormalCalculation(Data &data);
-/*
-void applyImageBinarization(Mat &binarizedImage, Mat angleImage, int height, int width, double binarizationThreshold);
 
-void applyAngleImageCalculation(Mat &angleI, Mat &norm, int height, int width, int neighborhoodRange, int neighborhoodMode);
-
-void applyLinearNormalAveraging(Mat &normals, Mat &avgNormals, int normalAveragingRange, int height, int width);
-
-//void applyGaussianNormalSmoothing(Mat &normalImage, Size size);
-
-void applyNormalCalculation(Mat &filteredImage, Mat &normals, int normalRange, int normalAveragingRange, bool gauss, bool average, int height, int width);
-*/
 std::string type2str(int type);
 
-Mat ICLImg_to_Mat(icl::core::Img32f &image, int numChannel);
+Mat ICLImg_to_Mat(icl::core::Img32f &image, Mat &mat, int numChannel);
 
-Mat ICLImg_to_Mat(icl::core::Img8u &image, int numChannel);
+Mat ICLImg_to_Mat(icl::core::Img8u &image, Mat &mat, int numChannel);
 
-void Mat_to_ICLImg(icl::core::Img32f &image, Mat mat, int numChannel);
+void Mat_to_ICLImg(icl::core::Img32f &image, Mat &mat, int numChannel);
 
-void Mat_to_ICLImg(icl::core::Img8u &image, Mat mat, int numChannel);
+void Mat_to_ICLImg(icl::core::Img8u &image, Mat &mat, int numChannel);
 
-//Mat preSeg_calculate(Mat &depthImage, bool filter, bool average, bool gauss);
+void Mat_to_DataSegment(icl::core::DataSegment<float, 4> &image, Mat &mat, int h, int w);
 
-Mat preSeg_calculate(Mat &depthImage, Data &data);
+void preSeg_calculate(Mat &depthImage, Data &data);
 }

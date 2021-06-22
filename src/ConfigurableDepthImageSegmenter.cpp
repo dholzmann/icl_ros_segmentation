@@ -32,6 +32,9 @@
 #include <FeatureGraphSegmenter.h>
 //#include <ICLGeom/PointCloudCreator.h>
 #include <ICLGeom/ObjectEdgeDetector.h>
+#include <ICLGeom/ObjectEdgeDetectorCPU.h>
+#include <ICLGeom/ObjectEdgeDetectorData.h>
+#include <ICLCore/Channel.h>
 //#include <ICLFilter/MotionSensitiveTemporalSmoothing.h>
 
 namespace icl{
@@ -223,29 +226,56 @@ namespace icl{
 
       m_data->objectEdgeDetector->setAngleNeighborhoodRange(neighbrange);
       m_data->objectEdgeDetector->setBinarizationThreshold(threshold);
-
-      int h = depthImage.getHeight();
-      int w = depthImage.getWidth();
-      EdgeDetector::Data data(usedFilter, useAveraging, usedAngle, usedSmoothing, normalrange, neighbrange, threshold, avgrange, h, w);
-      cv::Mat depth_image = cv::Mat(h, w, CV_32FC1);
+    
+    int h = depthImage.getHeight();
+    int w = depthImage.getWidth();
+    EdgeDetector::Data data(usedFilter, useAveraging, usedAngle, usedSmoothing, normalrange, neighbrange, threshold, avgrange, h, w);
+    cv::Mat depth_image = cv::Mat(h, w, CV_32FC1);
       
-      icl::core::Img<float> d = *depthImage.as32f();
-      icl::core::Img8u edge(depthImage.getSize(), 1);
+    icl::core::Img32f d = *depthImage.as32f();
+    const utils::Size size(w, h);
+    icl::core::Img32f angleI(size, 1);
+    icl::core::Img32f raw(size, 1);
+    icl::core::Img32f filtered(size, 1);
+    icl::core::Img8u binImage(size, 1);
 
-      for(int i=0; i < h; i++){
-        for(int j=0; j<w; j++){
-          depth_image.at<float>(i, j,0) = d(i, j,0);
-        }
-      }
-      //depth_image = EdgeDetector::preSeg_calculate(depth_image, true, true, true);
-      depth_image = EdgeDetector::preSeg_calculate(depth_image, data);
+    utils::Array2D<geom::Vec4> normalsA = utils::Array2D<geom::Vec4>(w,h);
+	  utils::Array2D<geom::Vec4> avgNormalsA = utils::Array2D<geom::Vec4>(w,h);
+    icl::core::DataSegment<float, 4> norm = core::DataSegment<float,4>(&normalsA(0,0).x, sizeof(Vec4), normalsA.getDim(), normalsA.getWidth());
+    icl::core::DataSegment<float, 4> avgNorm = core::DataSegment<float,4>(&avgNormalsA(0,0).x, sizeof(Vec4), avgNormalsA.getDim(), avgNormalsA.getWidth());
 
-      for(int i=0; i < h; i++){
-        for(int j=0; j<w; j++){
-          edge(i, j, 0) = depth_image.at<float>(i, j);
-        }
-      }
-      m_data->edgeImage=edge;
+    EdgeDetector::ICLImg_to_Mat(d, depth_image, 1);
+    EdgeDetector::preSeg_calculate(depth_image, data);
+    EdgeDetector::Mat_to_ICLImg(m_data->edgeImage, depth_image, 1);
+    EdgeDetector::Mat_to_ICLImg(angleI, data.angleImage, 1);
+    EdgeDetector::Mat_to_ICLImg(binImage, data.binarizedImage, 1);
+    
+    EdgeDetector::Mat_to_ICLImg(raw, data.rawImage, 1);
+    EdgeDetector::Mat_to_ICLImg(filtered, data.filteredImage, 1);
+    EdgeDetector::Mat_to_DataSegment(norm, data.normals, h, w);
+    EdgeDetector::Mat_to_DataSegment(avgNorm, data.avgNormals, h, w);
+    setNormals(norm);
+    m_data->objectEdgeDetector->setAngleImage(angleI);
+    m_data->objectEdgeDetector->setDepthImage(raw);
+    m_data->objectEdgeDetector->setFilteredDepthImage(filtered);
+    /*
+    cv::imshow("angle", data.angleImage);
+    cv::imshow("edge", data.binarizedImage);
+    cv::imshow("filtered", data.filteredImage);
+    cv::imshow("normals", data.normals);
+    cv::imshow("avgNormals", data.avgNormals);
+    cv::imshow("raw", data.rawImage);
+    cv::waitKey(1);
+    */
+    if (data.useNormalAveraging == true) {
+      m_data->objectEdgeDetector->setNormals(avgNorm);
+    } else {
+      m_data->objectEdgeDetector->setNormals(norm);
+    }
+    
+
+
+      
 			if (!m_data->use_extern_edge_image) {
 				/*if(useTempSmoothing==true){
 					m_data->edgeImage=m_data->objectEdgeDetector->calculate(*filteredImage->as32f(), usedFilterFlag,
@@ -258,7 +288,7 @@ namespace icl{
 				m_data->normalImage=m_data->objectEdgeDetector->getRGBNormalImage();
 			}
 		 
-
+      setEdgeSegData(binImage, m_data->normalImage);
       obj.lock();
       
       //create pointcloud
