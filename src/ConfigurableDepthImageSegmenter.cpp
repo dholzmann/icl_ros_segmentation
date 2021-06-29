@@ -226,7 +226,7 @@ namespace icl{
 
       m_data->objectEdgeDetector->setAngleNeighborhoodRange(neighbrange);
       m_data->objectEdgeDetector->setBinarizationThreshold(threshold);
-    
+    /*
     int h = depthImage.getHeight();
     int w = depthImage.getWidth();
     EdgeDetector::Data data(usedFilter, useAveraging, usedAngle, usedSmoothing, normalrange, neighbrange, threshold, avgrange, h, w);
@@ -258,7 +258,7 @@ namespace icl{
     m_data->objectEdgeDetector->setAngleImage(angleI);
     m_data->objectEdgeDetector->setDepthImage(raw);
     m_data->objectEdgeDetector->setFilteredDepthImage(filtered);
-    /*
+    
     cv::imshow("angle", data.angleImage);
     cv::imshow("edge", data.binarizedImage);
     cv::imshow("filtered", data.filteredImage);
@@ -266,12 +266,12 @@ namespace icl{
     cv::imshow("avgNormals", data.avgNormals);
     cv::imshow("raw", data.rawImage);
     cv::waitKey(1);
-    */
+    
     if (data.useNormalAveraging == true) {
       m_data->objectEdgeDetector->setNormals(avgNorm);
     } else {
       m_data->objectEdgeDetector->setNormals(norm);
-    }
+    }*/
     
 
 
@@ -281,14 +281,14 @@ namespace icl{
 					m_data->edgeImage=m_data->objectEdgeDetector->calculate(*filteredImage->as32f(), usedFilterFlag,
 																								 useAveraging, usedSmoothingFlag);
 				}else{*/
-					//m_data->edgeImage=m_data->objectEdgeDetector->calculate(*depthImage.as32f(), usedFilterFlag,
-					//																			 useAveraging, usedSmoothingFlag);
+					m_data->edgeImage=m_data->objectEdgeDetector->calculate(*depthImage.as32f(), usedFilterFlag,
+																								 useAveraging, usedSmoothingFlag);
 				//}
 				m_data->objectEdgeDetector->applyWorldNormalCalculation(m_data->depthCamera);
 				m_data->normalImage=m_data->objectEdgeDetector->getRGBNormalImage();
 			}
 		 
-      setEdgeSegData(binImage, m_data->normalImage);
+      //setEdgeSegData(binImage, m_data->normalImage);
       obj.lock();
       
       //create pointcloud
