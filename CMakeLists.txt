@@ -65,10 +65,15 @@ include_directories(src)
 set(LIB_SRC
 	src/Kinect.cpp
 	src/preSegmentation.cpp
+  src/HighLevelObjectSegmentation.cpp
+  src/SurfaceFeatureExtractor.cpp
 	)
 set(LIB_INC
 	src/Kinect.h
 	src/preSegmentation.h
+  src/HighLevelObjectSegmentation.h
+  src/Point4f.h
+  src/SurfaceFeatureExtractor.h
 )
 
 ## Declare a C++ library
