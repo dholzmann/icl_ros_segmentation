@@ -1,9 +1,10 @@
 #include <SurfaceFeatureExtractor.h>
+
 SurfaceFeatureExtractor::SurfaceFeature SurfaceFeatureExtractor::apply(
-                                        std::vector<Vec> &points, std::vector<Vec> &normals, int mode){
+                                        std::vector<Point4f> &points, std::vector<Point4f> &normals, int mode){
   SurfaceFeatureExtractor::SurfaceFeature feature = getInitializedStruct();
   if(normals.size()!=points.size()){
-    throw utils::ICLException("points size != normals size");
+    throw std::runtime_error("points size != normals size");
   }
   feature.numPoints=points.size();
   for(unsigned int i=0; i<points.size(); i++){
@@ -14,15 +15,15 @@ SurfaceFeatureExtractor::SurfaceFeature SurfaceFeatureExtractor::apply(
 }
 
 
-std::vector<SurfaceFeature> SurfaceFeatureExtractor::apply (Mat labelImage, Mat &xyzh, Mat &normals, int mode){
+std::vector<SurfaceFeatureExtractor::SurfaceFeature> SurfaceFeatureExtractor::apply (Mat labelImage, Mat &xyzh, Mat &normals, int mode){
   unsigned int w = labelImage.size().width;
   unsigned int h = labelImage.size().height;
 
-  std::vector<SurfaceFeatureExtractionSurfaceFeature> features;
+  std::vector<SurfaceFeatureExtractor::SurfaceFeature> features;
   for(unsigned int y=0; y<h; y++){
     for(unsigned int x=0; x<w; x++){
       while((int)features.size() < labelImage.at<int>(x,y)){
-        features.push_back(getInitializedFeature());
+        features.push_back(SurfaceFeatureExtractor::getInitializedStruct());
       }
       if(labelImage.at<int>(x,y)>0){
         features.at(labelImage.at<int>(x,y)-1).numPoints++;
@@ -88,38 +89,36 @@ void SurfaceFeatureExtractor::update(Point4f &normal, Point4f &point, SurfaceFea
     }
   }
 
-  SurfaceFeature SurfaceFeatureExtractor::getInitializedFeature(){
-    SurfaceFeature feature;
-    feature.numPoints=0;
-    //feature.normalHistogram.setSize(utils::Size(11,11));
-    //feature.normalHistogram.setChannels(1);
-    //feature.normalHistogram.setFormat(core::formatMatrix);
-    //feature.normalHistogram.fill(0);
-    feature.normalHistogram = Mat::zeros(Size(11,11), CV_32FC(6));
-    //feature.normalHistogramChannel = feature.normalHistogram[0];
-    feature.meanNormal=Point4f();
-    feature.meanPosition=Point4f();
-    //feature.curvatureFactor=SurfaceFeatureExtractor::UNDEFINED; == 0
-    feature.curvatureFactor = UNDEFINED;
-    //feature.boundingBox3D.first = Vec(1000000, 1000000, 1000000, 0);
-    feature.boundingBox3D.first = Point4f(1000000, 1000000, 1000000, 0);
-    feature.boundingBox3D.second = Point4f(-1000000, -1000000, -1000000, 0);
-    feature.boundingBox2D.first = Point(1000000,1000000);
-    feature.boundingBox2D.second = Point(-1000000, -1000000);
-    feature.volume=0;
-    return feature;
-  }
+SurfaceFeatureExtractor::SurfaceFeature SurfaceFeatureExtractor::getInitializedStruct(){
+  SurfaceFeatureExtractor::SurfaceFeature feature;
+  feature.numPoints=0;
+  //feature.normalHistogram.setSize(utils::Size(11,11));
+  //feature.normalHistogram.setChannels(1);
+  //feature.normalHistogram.setFormat(core::formatMatrix);
+  //feature.normalHistogram.fill(0);
+  feature.normalHistogram = Mat::zeros(Size(11,11), CV_32FC(6));
+  //feature.normalHistogramChannel = feature.normalHistogram[0];
+  feature.meanNormal=Point4f();
+  feature.meanPosition=Point4f();
+  //feature.curvatureFactor=SurfaceFeatureExtractor::UNDEFINED; == 0
+  feature.curvatureFactor = SurfaceFeatureExtractor::UNDEFINED;
+  //feature.boundingBox3D.first = Vec(1000000, 1000000, 1000000, 0);
+  feature.boundingBox3D.first = Point4f(1000000, 1000000, 1000000, 0);
+  feature.boundingBox3D.second = Point4f(-1000000, -1000000, -1000000, 0);
+  feature.boundingBox2D.first = Point(1000000,1000000);
+  feature.boundingBox2D.second = Point(-1000000, -1000000);
+  feature.volume=0;
+  return feature;
 }
 
-
-float SurfaceFeatureExtractor::matchNormalHistograms(core::Img32f &a, core::Img32f &b){
+float SurfaceFeatureExtractor::matchNormalHistograms(Mat &a, Mat &b){
   float sum=0;
-  core::Channel32f aC = a[0];
-  core::Channel32f bC = b[0];
   for(size_t i=0; i<11; i++){
     for(size_t j=0; j<11; j++){
-      sum+=std::min(aC(i,j),bC(i,j));
+      sum+=std::min(a.at<float>(i,j),b.at<float>(i,j));
     }
   }
   return sum;
 }
+
+
