@@ -96,7 +96,7 @@ namespace ObjectSegmenter{
             }
             data.surfaces.push_back(dat);
           }        
-        }*/
+        }
         std::vector<std::vector<Point> > contours;
         std::vector<Vec4i> hierarchy;
         findContours(edgeImgMasked, contours, hierarchy, RETR_TREE, CHAIN_APPROX_SIMPLE);
@@ -106,6 +106,8 @@ namespace ObjectSegmenter{
             Point p = contours[i][j];
             data.labelImage.at<int>(p.y, p.x) = i;
           }
-        }
+        }*/
+        Mat labelImageC;
+        int num_labels = connectedComponents(edgeImgMasked, labelImageC, 4, CV_32S);
     }
 }
