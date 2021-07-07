@@ -1,29 +1,16 @@
 #include <opencv2/opencv.hpp>
 #include <opencv2/core/mat.hpp>
-#include <opencv2/imgproc.hpp>
-#include <cv_bridge/cv_bridge.h>
-
-#include <rosbag/bag.h>
-#include <rosbag/view.h>
-#include <ros/ros.h>
-#include <ros/message_forward.h>
-#include <sensor_msgs/image_encodings.h>
-#include <sensor_msgs/Image.h>
-#include <std_msgs/String.h>
-#include "tf/tfMessage.h"
-#include "sensor_msgs/CameraInfo.h"
-#include <message_filters/subscriber.h>
-#include <message_filters/sync_policies/exact_time.h>
-#include <message_filters/time_synchronizer.h>
 
 #include <string>
 #include <sstream>
 #include <iostream>
 #include <math.h>
 
+#include "Point4f.h"
+#include "SurfaceFeatureExtractor.h"
+
 namespace ObjectSegmenter{
     using namespace cv;
-    typedef struct { float x, y, z, w; } Point4f;
 
     struct Data {
 

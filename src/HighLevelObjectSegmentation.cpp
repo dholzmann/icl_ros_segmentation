@@ -8,8 +8,19 @@ namespace ObjectSegmenter{
             surfaceSegmentation(data, xyz, edgeImage, depthImg, data.minSurfaceSize, useROI);
 
             if(data.surfaceSize>0){
-              Mat initialMatrix = m_data->segUtils->edgePointAssignmentAndAdjacencyMatrix(xyz, m_data->labelImage, 
-                                m_data->maskImage, m_data->assignmentRadius, m_data->assignmentDistance, m_data->surfaces.size());
+              data.features=SurfaceFeatureExtractor::apply(data.labelImage, xyz, normals, SurfaceFeatureExtractor::ALL);
+	      
+              math::DynMatrix<bool> initialMatrix = m_data->segUtils->edgePointAssignmentAndAdjacencyMatrix(xyz, m_data->labelImage, 
+                                      m_data->maskImage, m_data->assignmentRadius, m_data->assignmentDistance, m_data->surfaces.size());
+              
+              math::DynMatrix<bool> resultMatrix(m_data->surfaces.size(), m_data->surfaces.size(), false);
+              
+              if(useCutfreeAdjacency){
+                math::DynMatrix<bool> cutfreeMatrix = m_data->cutfree->apply(xyz, 
+                          m_data->surfaces, initialMatrix, m_data->cutfreeRansacEuclideanDistance, 
+                  m_data->cutfreeRansacPasses, m_data->cutfreeRansacTolerance, m_data->labelImage, m_data->features, m_data->cutfreeMinAngle);
+                math::GraphCutter::mergeMatrix(resultMatrix, cutfreeMatrix);
+              }
             }
     }
 
@@ -74,29 +85,8 @@ namespace ObjectSegmenter{
             }
           }
         }
+
         /*
-        int numCluster=0;      
-        data.region->setConstraints (minSurfaceSize, 4000000, 254, 255);
-        std::vector<ImageRegion> regions;
-        regions = data.region->detect(&edgeImgMasked); 	
-        for(unsigned int i=0; i<regions.size(); i++){
-          std::vector<utils::Point> ps = regions[i].getPixels();
-          if((int)ps.size()>=minSurfaceSize){
-            numCluster++;
-            std::vector<int> dat;
-            for(unsigned int j=0; j<ps.size(); j++){
-              int px = ps[j][0];
-              int py = ps[j][1];
-              int v=px+w*py;
-              if(data.maskImage.at<int>(px,py)==0){
-                data.labelImage.at<int>(px,py)=numCluster;
-                data.maskImage.at<int>(px,py)=1;
-                dat.push_back(v);
-              }
-            }
-            data.surfaces.push_back(dat);
-          }        
-        }
         std::vector<std::vector<Point> > contours;
         std::vector<Vec4i> hierarchy;
         findContours(edgeImgMasked, contours, hierarchy, RETR_TREE, CHAIN_APPROX_SIMPLE);
@@ -107,6 +97,7 @@ namespace ObjectSegmenter{
             data.labelImage.at<int>(p.y, p.x) = i;
           }
         }*/
+
         Mat labelImageC;
         int num_labels = connectedComponents(edgeImgMasked, labelImageC, 4, CV_32S);
     }
