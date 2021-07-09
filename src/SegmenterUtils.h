@@ -59,7 +59,7 @@ class SegmenterUtils{
     /** @param labelImage the input label image
         @return the output color image.
     */
-    core::Img8u createColorImage(core::Img32s &labelImage);
+    Mat createColorImage(Mat &labelImage);
 
     /// Creates the mask image for segmentation (including 3D ROI).
     /** @param xyzh the input pointcloud (point position)
@@ -72,20 +72,20 @@ class SegmenterUtils{
         @zMax parameter for ROI (in mm for world coordinates)
         @return the output mask image.
     */
-    core::Img8u createROIMask(core::DataSegment<float,4> &xyzh, core::Img32f &depthImage,
+    Mat createROIMask(Mat &xyzh, Mat &depthImage,
                 float xMin, float xMax, float yMin, float yMax, float zMin=-10000, float zMax=10000);
 
     /// Creates the mask image for segmentation.
     /** @param depthImage the input depth image
         @return the output mask image.
     */
-    core::Img8u createMask(core::Img32f &depthImage);
+    Mat createMask(Mat &depthImage);
 
     /// Minimizes the label ID changes from frame to frame. The overlaps between the current and the previous label image are calculated and relabeled for the result.
     /** @param labelImage the input label image
         @return the stabelized output label image.
     */
-    core::Img32s stabelizeSegmentation(core::Img32s &labelImage);
+    Mat stabelizeSegmentation(Mat &labelImage);
 
     /// Calculates the adjacency between segments. Use edgePointAssignmentAndAdjacencyMatrix(...) if edge point assignment is needed as well.
     /** @param xyzh the input pointcloud (point position)
@@ -96,8 +96,8 @@ class SegmenterUtils{
         @param numSurfaces the number of surfaces/segments in the label image
         @return the adjacency matrix.
     */
-    math::DynMatrix<bool> calculateAdjacencyMatrix(core::DataSegment<float,4> &xyzh, core::Img32s &labelImage,
-                            core::Img8u &maskImage, int radius, float euclideanDistance, int numSurfaces);
+    Mat calculateAdjacencyMatrix(Mat &xyzh, Mat &labelImage,
+                            Mat &maskImage, int radius, float euclideanDistance, int numSurfaces);
 
     /// Assigns the edge points to the surfaces. Use edgePointAssignmentAndAdjacencyMatrix(...) if adjacency matrix is needed as well.
     /** @param xyzh the input pointcloud (point position)
@@ -107,8 +107,8 @@ class SegmenterUtils{
         @param euclideanDistance the maximum euclidean distance between adjacent surfaces/segments
         @param numSurfaces the number of surfaces/segments in the label image
     */
-    void edgePointAssignment(core::DataSegment<float,4> &xyzh, core::Img32s &labelImage,
-                            core::Img8u &maskImage, int radius, float euclideanDistance, int numSurfaces);
+    void edgePointAssignment(Mat &xyzh, Mat &labelImage,
+                            Mat &maskImage, int radius, float euclideanDistance, int numSurfaces);
 
     /// Calculates the adjacency between segments and assigns the edge points to the surfaces.
     /** @param xyzh the input pointcloud (point position)
@@ -119,21 +119,21 @@ class SegmenterUtils{
         @param numSurfaces the number of surfaces/segments in the label image
         @return the adjacency matrix.
     */
-    math::DynMatrix<bool> edgePointAssignmentAndAdjacencyMatrix(core::DataSegment<float,4> &xyzh, core::Img32s &labelImage,
-                            core::Img8u &maskImage, int radius, float euclideanDistance, int numSurfaces);
+    Mat edgePointAssignmentAndAdjacencyMatrix(Mat &xyzh, Mat &labelImage,
+                            Mat &maskImage, int radius, float euclideanDistance, int numSurfaces);
 
     /// Extracts the segments from a label image.
     /** @param labelImage the input label image
         @return a vector of pointID vectors.
     */
-    std::vector<std::vector<int> > extractSegments(core::Img32s &labelImage);
+    std::vector<std::vector<int> > extractSegments(Mat &labelImage);
 
     /// Relabels the label image.
     /** @param labelImage the input/output label image
         @param assignment a vector of vectors with label ids. Each label from the inner id is replaced by the outer vector id.
         @param maxOldLabel the maximum id of the old labels (optional)
     */
-    void relabel(core::Img32s &labelImage, std::vector<std::vector<int> > &assignment, int maxOldLabel=0);
+    void relabel(Mat &labelImage, std::vector<std::vector<int> > &assignment, int maxOldLabel=0);
 
     /// Checks if there is occlusion between two points (depth of all points on or in front of an augmented line).
     /** @param depthImage the input depth image
@@ -143,33 +143,33 @@ class SegmenterUtils{
         @param outlierTolerance maximum number of outlier points in percent
         @return true if occluded.
     */
-    static bool occlusionCheck(core::Img32f &depthImage, utils::Point p1, utils::Point p2, float distanceTolerance=3., float outlierTolerance=5.);
+    static bool occlusionCheck(Mat &depthImage, Point p1, Point p2, float distanceTolerance=3., float outlierTolerance=5.);
 
     /// Creates the label vectors from a given label image
     /** @param labelImage the input label image
         @return the vector of id vectors
     */
-    static std::vector<std::vector<int> > createLabelVectors(core::Img32s &labelImage);
+    static std::vector<std::vector<int> > createLabelVectors(Mat &labelImage);
 
     private:
 
     struct Data;  //!< internal data type
     Data *m_data; //!< internal data pointer
 
-    void createColorImageCL(core::Img32s &labelImage, core::Img8u &colorImage);
+    void createColorImageCL(Mat &labelImage, Mat &colorImage);
 
-    void createColorImageCPU(core::Img32s &labelImage, core::Img8u &colorImage);
+    void createColorImageCPU(Mat &labelImage, Mat &colorImage);
 
-    std::vector<int> calculateLabelReassignment(int countCur, int countLast, core::Channel32s &labelImageC, core::Channel32s &lastLabelImageC, utils::Size size);
+    std::vector<int> calculateLabelReassignment(int countCur, int countLast, Mat &labelImageC, Mat &lastLabelImageC, Size size);
 
-    math::DynMatrix<bool> edgePointAssignmentAndAdjacencyMatrixCL(core::DataSegment<float,4> &xyzh, core::Img32s &labelImage,
-                            core::Img8u &maskImage, int radius, float euclideanDistance, int numSurfaces, bool pointAssignment);
+    Mat edgePointAssignmentAndAdjacencyMatrixCL(Mat &xyzh, Mat &labelImage,
+                            Mat &maskImage, int radius, float euclideanDistance, int numSurfaces, bool pointAssignment);
 
-    math::DynMatrix<bool> edgePointAssignmentAndAdjacencyMatrixCPU(core::DataSegment<float,4> &xyzh, core::Img32s &labelImage,
-                            core::Img8u &maskImage, int radius, float euclideanDistance, int numSurfaces, bool pointAssignment);
+    Mat edgePointAssignmentAndAdjacencyMatrixCPU(Mat &xyzh, Mat &labelImage,
+                            Mat &maskImage, int radius, float euclideanDistance, int numSurfaces, bool pointAssignment);
 
-    static float dist3(const Vec &a, const Vec &b){
-        return norm3(a-b);
+    static float dist3(const Point3f &a, const Point3f &b){
+        return cv::norm(a-b);
     }
 
 };

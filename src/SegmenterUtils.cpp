@@ -235,7 +235,7 @@ SegmenterUtils::~SegmenterUtils() {
 }
 
 
-Mat SegmenterUtils::createColorImage(/*core::Img32s*/Mat &labelImage){
+Mat SegmenterUtils::createColorImage(Mat &labelImage){
   //core::Img8u colorImage;
   Mat colorImage;
   if(m_data->useCL==true && m_data->clReady==true){
@@ -256,13 +256,13 @@ Mat SegmenterUtils::createColorImage(/*core::Img32s*/Mat &labelImage){
   for(int y=0;y<size.height;++y){
     for(int x=0;x<size.width;++x){
       int i = x+size.width*y;
-      if(xyzh[i][0]<xMin || xyzh[i][0]>xMax || xyzh[i][1]<yMin || xyzh[i][1]>yMax || xyzh[i][2]<zMin || xyzh[i][2]>zMax){
-        maskImageC(x,y)=1;
+      if(xyzh.at<Point4f>(y, x)[0]<xMin || xyzh.at<Point4f>(y, x)[0]>xMax || xyzh.at<Point4f>(y, x)[1]<yMin || xyzh.at<Point4f>(y, x)[1]>yMax || xyzh.at<Point4f>(y, x)[2]<zMin || xyzh.at<Point4f>(y, x)[2]>zMax){
+        maskImage.at<int>(x,y)=1;
       }else{
-        maskImageC(x,y)=0;
+        maskImage.at<int>(x,y)=0;
       }
-      if(depthImageC(x,y)==2047){
-        maskImageC(x,y)=1;
+      if(depthImage.at<int>(x,y)==2047){
+        maskImage.at<int>(x,y)=1;
       }
     }
   }
@@ -270,16 +270,16 @@ Mat SegmenterUtils::createColorImage(/*core::Img32s*/Mat &labelImage){
 }
 
 
-core::Img8u SegmenterUtils::createMask(core::Img32f &depthImage){
-  utils::Size size = depthImage.getSize();
-  core::Img8u maskImage(size,1,core::formatMatrix);
-  core::Channel8u maskImageC = maskImage[0];
-  core::Channel32f depthImageC = depthImage[0];
+/*core::Img8u*/Mat SegmenterUtils::createMask(/*core::Img32f*/Mat &depthImage){
+  Size size = depthImage.size();
+  /*core::Img8u*/Mat maskImage(size, CV_8UC1);
+  /*core::Channel8uMat maskImageC = maskImage[0];
+  core::Channel32fMat depthImageC = depthImage[0];*/
   for(int y=0;y<size.height;++y){
     for(int x=0;x<size.width;++x){
-      maskImageC(x,y)=0;
-      if(depthImageC(x,y)==2047){
-        maskImageC(x,y)=1;
+      maskImage.at<int>(x,y)=0;
+      if(depthImage.at<float>(x,y)==2047){
+        maskImage.at<int>(x,y)=1;
       }
     }
   }
@@ -287,49 +287,50 @@ core::Img8u SegmenterUtils::createMask(core::Img32f &depthImage){
 }
 
 
-core::Img32s SegmenterUtils::stabelizeSegmentation(core::Img32s &labelImage){
-  core::Img32s stableLabelImage(labelImage.getSize(),1,core::formatMatrix);
+/*core::Img32s*/Mat SegmenterUtils::stabelizeSegmentation(/*core::Img32s*/Mat &labelImage){
+  /*core::Img32s stableLabelImage(labelImage.getSize(),1,core::formatMatrix);
   core::Channel32s labelImageC = labelImage[0];
   core::Channel32s stableLabelImageC = stableLabelImage[0];
-
-  utils::Size size = labelImage.getSize();
+  */
+ Mat stableLabelImage(labelImage.size(), CV_8UC1);
+  Size size = labelImage.size();
   if(m_data->stabelizeCounter==0){//first image
-    labelImage.deepCopy(&m_data->lastLabelImage);
+    m_data->lastLabelImage = labelImage.clone();
   }else{
-    core::Channel32s lastLabelImageC = m_data->lastLabelImage[0];
+    //core::Channel32s lastLabelImageC = m_data->lastLabelImage[0];
 
     //count number of segments of previous and current label image
     int countCur=0;
     int countLast=0;
     for(int y=0; y<size.height; y++){
       for(int x=0; x<size.width; x++){
-        if(labelImageC(x,y)>countCur){
-          countCur=labelImageC(x,y);
+        if(labelImage.at<int>(x,y)>countCur){
+          countCur=labelImage.at<int>(x,y);
         }
-        if(lastLabelImageC(x,y)>countLast){
-          countLast=lastLabelImageC(x,y);
+        if(m_data->lastLabelImage.at<int>(x,y)>countLast){
+          countLast=m_data->lastLabelImage.at<int>(x,y);
         }
       }
     }
 
     if(countCur==0 || countLast==0){//no relabeling possible
-        labelImage.deepCopy(&m_data->lastLabelImage);
+        m_data->lastLabelImage = labelImage.clone();
         return labelImage;
     }
 
-    std::vector<int> curAss = calculateLabelReassignment(countCur, countLast, labelImageC, lastLabelImageC, size);
+    std::vector<int> curAss = calculateLabelReassignment(countCur, countLast, labelImage, m_data->lastLabelImage, size);
 
     for(int y=0; y<size.height; y++){//reassign label
       for(int x=0; x<size.width; x++){
-        if(labelImageC(x,y)>0){
-          stableLabelImageC(x,y)=curAss[labelImageC(x,y)-1];
+        if(labelImage.at<int>(x,y)>0){
+          stableLabelImage.at<int>(x,y)=curAss[labelImage.at<int>(x,y)-1];
         }else{
-          stableLabelImageC(x,y)=0;
+          stableLabelImage.at<int>(x,y)=0;
         }
       }
     }
 
-    stableLabelImage.deepCopy(&m_data->lastLabelImage);//copy image for next iteration
+    m_data->lastLabelImage = stableLabelImage.clone();//copy image for next iteration
 
   }
   m_data->stabelizeCounter=1;
@@ -338,9 +339,10 @@ core::Img32s SegmenterUtils::stabelizeSegmentation(core::Img32s &labelImage){
 }
 
 
-math::DynMatrix<bool> SegmenterUtils::calculateAdjacencyMatrix(core::DataSegment<float,4> &xyzh, core::Img32s &labelImage,
-                          core::Img8u &maskImage, int radius, float euclideanDistance, int numSurfaces){
-  math::DynMatrix<bool> adjacencyMatrix;
+Mat SegmenterUtils::calculateAdjacencyMatrix(Mat &xyzh, Mat &labelImage,
+                          Mat &maskImage, int radius, float euclideanDistance, int numSurfaces){
+  //math::DynMatrix<bool> adjacencyMatrix;
+  Mat adjacencyMatrix;
   if(m_data->useCL==true && m_data->clReady==true){
     adjacencyMatrix=edgePointAssignmentAndAdjacencyMatrixCL(xyzh, labelImage, maskImage, radius, euclideanDistance, numSurfaces, false);
   }else{
@@ -350,9 +352,10 @@ math::DynMatrix<bool> SegmenterUtils::calculateAdjacencyMatrix(core::DataSegment
 }
 
 
-void SegmenterUtils::edgePointAssignment(core::DataSegment<float,4> &xyzh, core::Img32s &labelImage,
-                          core::Img8u &maskImage, int radius, float euclideanDistance, int numSurfaces){
-  math::DynMatrix<bool> adjacencyMatrix;
+void SegmenterUtils::edgePointAssignment(Mat &xyzh, Mat &labelImage,
+                          Mat &maskImage, int radius, float euclideanDistance, int numSurfaces){
+  //math::DynMatrix<bool> adjacencyMatrix;
+  Mat adjacencyMatrix;
   if(m_data->useCL==true && m_data->clReady==true){
     adjacencyMatrix=edgePointAssignmentAndAdjacencyMatrixCL(xyzh, labelImage, maskImage, radius, euclideanDistance, numSurfaces, true);
   }else{
@@ -361,9 +364,9 @@ void SegmenterUtils::edgePointAssignment(core::DataSegment<float,4> &xyzh, core:
 }
 
 
-math::DynMatrix<bool> SegmenterUtils::edgePointAssignmentAndAdjacencyMatrix(core::DataSegment<float,4> &xyzh, core::Img32s &labelImage,
-                          core::Img8u &maskImage, int radius, float euclideanDistance, int numSurfaces){
-  math::DynMatrix<bool> adjacencyMatrix;
+Mat SegmenterUtils::edgePointAssignmentAndAdjacencyMatrix(Mat &xyzh, Mat &labelImage,
+                          Mat &maskImage, int radius, float euclideanDistance, int numSurfaces){
+  Mat adjacencyMatrix;
   if(m_data->useCL==true && m_data->clReady==true){
     adjacencyMatrix=edgePointAssignmentAndAdjacencyMatrixCL(xyzh, labelImage, maskImage, radius, euclideanDistance, numSurfaces, true);
   }else{
@@ -373,18 +376,18 @@ math::DynMatrix<bool> SegmenterUtils::edgePointAssignmentAndAdjacencyMatrix(core
 }
 
 
-std::vector<std::vector<int> > SegmenterUtils::extractSegments(core::Img32s &labelImage){
-  int h=labelImage.getSize().height;
-  int w=labelImage.getSize().width;
-  core::Channel32s labelImageC = labelImage[0];
+std::vector<std::vector<int> > SegmenterUtils::extractSegments(Mat &labelImage){
+  int h=labelImage.size().height;
+  int w=labelImage.size().width;
+  //core::Channel32s labelImageC = labelImage[0];
   std::vector<std::vector<int> > segments;
   for(int y=0; y<h; y++){
     for(int x=0; x<w; x++){
-      if(labelImageC(x,y)>(int)segments.size()){
-        segments.resize(labelImageC(x,y));
+      if(labelImage.at<int>(x,y)>(int)segments.size()){
+        segments.resize(labelImage.at<int>(x,y));
       }
-      if(labelImageC(x,y)>0){
-        segments.at(labelImageC(x,y)-1).push_back(x+y*w);
+      if(labelImage.at<int>(x,y)>0){
+        segments.at(labelImage.at<int>(x,y)-1).push_back(x+y*w);
       }
     }
   }
@@ -392,7 +395,7 @@ std::vector<std::vector<int> > SegmenterUtils::extractSegments(core::Img32s &lab
 }
 
 
-void SegmenterUtils::relabel(core::Img32s &labelImage, std::vector<std::vector<int> > &assignment, int maxOldLabel){
+void SegmenterUtils::relabel(Mat &labelImage, std::vector<std::vector<int> > &assignment, int maxOldLabel){
   std::vector<int> mapping;
   if(maxOldLabel>0){
     mapping.resize(maxOldLabel,0);
@@ -412,25 +415,25 @@ void SegmenterUtils::relabel(core::Img32s &labelImage, std::vector<std::vector<i
       mapping[assignment[i][j]]=i;
     }
   }
-  int w = labelImage.getSize().width;
-  int h = labelImage.getSize().height;
-  core::Channel32s labelImageC = labelImage[0];
+  int w = labelImage.size().width;
+  int h = labelImage.size().height;
+  //core::Channel32s labelImageC = labelImage[0];
   for(int y=0; y<h; y++){//map
     for(int x=0; x<w; x++){
-      if(labelImageC(x,y)>0){
-        labelImageC(x,y)=mapping[labelImageC(x,y)-1]+1;
+      if(labelImage.at<int>(x,y)>0){
+        labelImage.at<int>(x,y)=mapping[labelImage.at<int>(x,y)-1]+1;
       }
     }
   }
 }
 
 
-bool SegmenterUtils::occlusionCheck(core::Img32f &depthImage, utils::Point p1, utils::Point p2, float distanceTolerance, float outlierTolerance){
-  core::Channel32f depthImageC = depthImage[0];
+bool SegmenterUtils::occlusionCheck(Mat &depthImage, Point p1, Point p2, float distanceTolerance, float outlierTolerance){
+  //core::Channel32f depthImageC = depthImage[0];
   bool sampleX=false;//over x or y
   int step=0;//positive or negative
-  float startValue=depthImageC(p1.x,p1.y);
-  float endValue=depthImageC(p2.x,p2.y);
+  float startValue=depthImage.at<float>(p1.x,p1.y);
+  float endValue=depthImage.at<float>(p2.x,p2.y);
   float depthGradient, gradient;
 
   if(abs(p2.x-p1.x)>abs(p2.y-p1.y)){//sample x init
@@ -457,10 +460,10 @@ bool SegmenterUtils::occlusionCheck(core::Img32f &depthImage, utils::Point p1, u
   if(sampleX){//sample x process
     for(int i=p1.x; (i-p2.x)*step<=0; i+=step){
       int newY=(int)round(p1.y+(i-p1.x)*gradient);
-      float realValue = depthImageC(i,newY);
+      float realValue = depthImage.at<float>(i,newY);
       float augmentedValue = startValue+(i-p1.x)*depthGradient;
       float s1 = realValue-augmentedValue;//minus -> real closer than augmented
-      if(s1-distanceTolerance>0 && depthImageC(i,newY)!=2047){//not occluding
+      if(s1-distanceTolerance>0 && depthImage.at<float>(i,newY)!=2047){//not occluding
         numReject++;
       }
     }
@@ -470,10 +473,10 @@ bool SegmenterUtils::occlusionCheck(core::Img32f &depthImage, utils::Point p1, u
   }else{//sample y process
     for(int i=p1.y; (i-p2.y)*step<=0; i+=step){
       int newX=(int)round(p1.x+(i-p1.y)*gradient);
-      float realValue = depthImageC(newX,i);
+      float realValue = depthImage.at<float>(newX,i);
       float augmentedValue = startValue+(i-p1.y)*depthGradient;
       float s1 = realValue-augmentedValue;
-      if(s1-distanceTolerance>0 && depthImageC(newX,i)!=2047){
+      if(s1-distanceTolerance>0 && depthImage.at<float>(newX,i)!=2047){
         numReject++;
       }
     }
@@ -485,18 +488,18 @@ bool SegmenterUtils::occlusionCheck(core::Img32f &depthImage, utils::Point p1, u
 }
 
 
-std::vector<std::vector<int> > SegmenterUtils::createLabelVectors(core::Img32s &labelImage){
-  utils::Size s = labelImage.getSize();
-  core::Channel32s labelImageC = labelImage[0];
+std::vector<std::vector<int> > SegmenterUtils::createLabelVectors(Mat &labelImage){
+  Size s = labelImage.size();
+  //core::Channel32s labelImageC = labelImage[0];
   std::vector<std::vector<int> > labelVector;
   for(int y=0; y<s.height; y++){
     for( int x=0; x<s.width; x++){
       int id = x+y*s.width;
-      if(labelImageC(x,y)>0){
-        if(labelImageC(x,y)>(int)labelVector.size()){
-          labelVector.resize(labelImageC(x,y));
+      if(labelImage.at<int>(x,y)>0){
+        if(labelImage.at<int>(x,y)>(int)labelVector.size()){
+          labelVector.resize(labelImage.at<int>(x,y));
         }
-        labelVector[labelImageC(x,y)-1].push_back(id);
+        labelVector[labelImage.at<int>(x,y)-1].push_back(id);
       }
     }
   }
@@ -504,9 +507,9 @@ std::vector<std::vector<int> > SegmenterUtils::createLabelVectors(core::Img32s &
 }
 
 
-void SegmenterUtils::createColorImageCL(core::Img32s &labelImage, core::Img8u &colorImage){
+void SegmenterUtils::createColorImageCL(Mat &labelImage, Mat &colorImage){
   #ifdef ICL_HAVE_OPENCL
-    utils::Size s = labelImage.getSize();
+    Size s = labelImage.size();
     if(s!=m_data->size || m_data->kernelSegmentColoringInitialized==false){//reinit
       m_data->size = s;
       int w = s.width;
@@ -550,19 +553,20 @@ void SegmenterUtils::createColorImageCL(core::Img32s &labelImage, core::Img8u &c
 }
 
 
-void SegmenterUtils::createColorImageCPU(core::Img32s &labelImage, core::Img8u &colorImage){
-  utils::Size s = labelImage.getSize();
-  colorImage.setSize(s);
-  colorImage.setChannels(3);
+void SegmenterUtils::createColorImageCPU(Mat &labelImage, Mat &colorImage){
+  Size s = labelImage.size();
+  //colorImage.size(s);
+  //colorImage.setChannels(3);
+  Mat ColorImage(s, CV_8UC3);
   for (int y = 0; y < s.height; y++) {
     for (int x = 0; x < s.width; x++) {
-      if (labelImage(x,y,0) == 0) {
-        colorImage(x, y, 0) = 128;
-        colorImage(x, y, 1) = 128;
-        colorImage(x, y, 2) = 128;
+      if (labelImage.at<int>(x,y,0) == 0) {
+        colorImage.at<int>(x, y, 0) = 128;
+        colorImage.at<int>(x, y, 1) = 128;
+        colorImage.at<int>(x, y, 2) = 128;
       } else {
-        int H = (int) (labelImage(x,y,0) * 35.) % 360;
-        float S = 1.0 - labelImage(x,y,0) * 0.01;
+        int H = (int) (labelImage.at<int>(x,y,0) * 35.) % 360;
+        float S = 1.0 - labelImage.at<int>(x,y,0) * 0.01;
         float hi = floor((float) H / 60.);
         float f = ((float) H / 60.) - hi;
         float pp = 1.0 - S;
@@ -596,9 +600,9 @@ void SegmenterUtils::createColorImageCPU(core::Img32s &labelImage, core::Img8u &
           newG = pp;
           newB = qq;
         }
-        colorImage(x, y, 0) = (unsigned char) (newR * 255.);
-        colorImage(x, y, 1) = (unsigned char) (newG * 255.);
-        colorImage(x, y, 2) = (unsigned char) (newB * 255.);
+        colorImage.at<int>(x, y, 0) = (unsigned char) (newR * 255.);
+        colorImage.at<int>(x, y, 1) = (unsigned char) (newG * 255.);
+        colorImage.at<int>(x, y, 2) = (unsigned char) (newB * 255.);
       }
     }
   }
@@ -606,8 +610,9 @@ void SegmenterUtils::createColorImageCPU(core::Img32s &labelImage, core::Img8u &
 }
 
 
-std::vector<int> SegmenterUtils::calculateLabelReassignment(int countCur, int countLast, core::Channel32s &labelImageC, core::Channel32s &lastLabelImageC, utils::Size size){
-  math::DynMatrix<int> assignmentMatrix(countCur,countLast,0);
+std::vector<int> SegmenterUtils::calculateLabelReassignment(int countCur, int countLast, Mat &labelImageC, Mat &lastLabelImageC, Size size){
+  //math::DynMatrix<int> assignmentMatrix(countCur,countLast,0);
+  Mat assignmentMatrix(countCur,countLast,0);
   std::vector<int> lastNum(countLast,0);
   std::vector<int> curNum(countCur,0);
   std::vector<int> curAss(countCur,0);
@@ -615,10 +620,10 @@ std::vector<int> SegmenterUtils::calculateLabelReassignment(int countCur, int co
 
   for(int y=0; y<size.height; y++){//count overlap points (cross-correlated)
     for(int x=0; x<size.width; x++){
-      if(labelImageC(x,y)>0 && lastLabelImageC(x,y)>0){
-        assignmentMatrix(labelImageC(x,y)-1, lastLabelImageC(x,y)-1)++;//num match points
-        lastNum[lastLabelImageC(x,y)-1]++;//num segment points
-        curNum[labelImageC(x,y)-1]++;//num segment points
+      if(labelImageC.at<int>(x,y)>0 && lastLabelImageC.at<int>(x,y)>0){
+        assignmentMatrix.at<int>(labelImageC.at<int>(x,y)-1, lastLabelImageC.at<int>(x,y)-1)++;//num match points
+        lastNum[lastLabelImageC.at<int>(x,y)-1]++;//num segment points
+        curNum[labelImageC.at<int>(x,y)-1]++;//num segment points
       }
     }
   }
@@ -628,9 +633,9 @@ std::vector<int> SegmenterUtils::calculateLabelReassignment(int countCur, int co
       float curScore;
       float lastScore;
       float compScore;
-      if(assignmentMatrix(i,j)>0){
-        curScore=(float)assignmentMatrix(i,j)/(float)curNum[i];
-        lastScore=(float)assignmentMatrix(i,j)/(float)lastNum[j];
+      if(assignmentMatrix.at<int>(i,j)>0){
+        curScore=(float)assignmentMatrix.at<int>(i,j)/(float)curNum[i];
+        lastScore=(float)assignmentMatrix.at<int>(i,j)/(float)lastNum[j];
         compScore=(curScore+lastScore)/2.;
       }
       else{
@@ -677,8 +682,8 @@ std::vector<int> SegmenterUtils::calculateLabelReassignment(int countCur, int co
 }
 
 
-math::DynMatrix<bool> SegmenterUtils::edgePointAssignmentAndAdjacencyMatrixCL(core::DataSegment<float,4> &xyzh, core::Img32s &labelImage,
-                          core::Img8u &maskImage, int radius, float euclideanDistance, int numSurfaces, bool pointAssignment){
+Mat SegmenterUtils::edgePointAssignmentAndAdjacencyMatrixCL(Mat &xyzh, Mat &labelImage,
+                          Mat &maskImage, int radius, float euclideanDistance, int numSurfaces, bool pointAssignment){
   #ifdef ICL_HAVE_OPENCL
     utils::Size s = labelImage.getSize();
     math::DynMatrix<bool> neighbours(numSurfaces,numSurfaces,false);
@@ -744,22 +749,23 @@ math::DynMatrix<bool> SegmenterUtils::edgePointAssignmentAndAdjacencyMatrixCL(co
 
     return neighbours;
   #else
-    return math::DynMatrix<bool>();
+    return Mat();
   #endif
 }
 
 
-math::DynMatrix<bool> SegmenterUtils::edgePointAssignmentAndAdjacencyMatrixCPU(core::DataSegment<float,4> &xyzh, core::Img32s &labelImage,
-                          core::Img8u &maskImage, int radius, float euclideanDistance, int numSurfaces, bool pointAssignment){
-  utils::Size s = labelImage.getSize();
+Mat SegmenterUtils::edgePointAssignmentAndAdjacencyMatrixCPU(Mat &xyzh, Mat &labelImage,
+                          Mat &maskImage, int radius, float euclideanDistance, int numSurfaces, bool pointAssignment){
+  Size s = labelImage.size();
   int w = s.width;
   int h = s.height;
-  math::DynMatrix<bool> neighbours(numSurfaces, numSurfaces, false);
-  core::Img32s labelImageOut(labelImage.getSize(),1,core::formatMatrix);
+  Mat neighbours(numSurfaces, numSurfaces, false);
+  //core::Img32s labelImageOut(labelImage.getSize(),1,core::formatMatrix);
+  Mat labelImageOut(s, CV_32SC1);
 
-  core::Channel32s labelImageC = labelImage[0];
-  core::Channel32s labelImageOutC = labelImageOut[0];
-  core::Channel8u maskImageC = maskImage[0];
+  //core::Channel32s labelImageC = labelImage[0];
+  //core::Channel32s labelImageOutC = labelImageOut[0];
+  //core::Channel8u maskImageC = maskImage[0];
 
   for (int x=0; x<w; x++) {
     for(int y=0; y<h; y++) {
@@ -767,20 +773,20 @@ math::DynMatrix<bool> SegmenterUtils::edgePointAssignmentAndAdjacencyMatrixCPU(c
       float dist=100000;
       int ass=0;
       bool assigned=false;
-      if(maskImageC(x,y)==0 && labelImageC(x,y)==0) {
+      if(maskImage.at<int>(x,y)==0 && labelImage.at<int>(x,y)==0) {
         std::vector<bool> adj(numSurfaces,false);
         for(int xx=-radius; xx<=radius; xx++) {
           for(int yy=-radius; yy<=radius; yy++) {
-            if(x+xx>=0 && x+xx<w && y+yy>=0 && y+yy<h && labelImageC(x+xx,y+yy)!=0) {
-              Vec p1=xyzh[i];
-              Vec p2=xyzh[(x+xx)+w*(y+yy)];
+            if(x+xx>=0 && x+xx<w && y+yy>=0 && y+yy<h && labelImage.at<int>(x+xx,y+yy)!=0) {
+              Point3f p1=xyzh.at<Point3f>(y,x);
+              Point3f p2=xyzh.at<Point3f>(y+yy,x+xx);
               float distance=dist3(p1, p2);
               if(distance<euclideanDistance) {
-                adj[labelImageC(x+xx,y+yy)-1]=true;
+                adj[labelImage.at<int>(x+xx,y+yy)-1]=true;
               }
               if(distance<dist && distance<euclideanDistance) {
                 dist=distance;
-                ass=labelImageC(x+xx,y+yy);
+                ass=labelImage.at<int>(x+xx,y+yy);
                 assigned=true;
               }
             }
@@ -788,32 +794,32 @@ math::DynMatrix<bool> SegmenterUtils::edgePointAssignmentAndAdjacencyMatrixCPU(c
         }
         for(int a=0; a<numSurfaces-1; a++) {
           for (int b=a+1; b<numSurfaces; b++) {
-            if(adj[a]==true && adj[b]==true) {
-              neighbours(a,b)=true;
-              neighbours(b,a)=true;
+            if(adj[a]==1 && adj[b]==1) {
+              neighbours.at<int>(a,b)=1;
+              neighbours.at<int>(b,a)=1;
             }
           }
         }
         if(pointAssignment){
-          if(assigned==true) {
-            maskImageC(x,y)=1;
-            labelImageOutC(x,y)=ass;
+          if(assigned==1) {
+            maskImage.at<int>(x,y)=1;
+            labelImageOut.at<int>(x,y)=ass;
           }
           else {
-            labelImageOutC(x,y)=labelImageC(x,y);
+            labelImageOut.at<int>(x,y)=labelImage.at<int>(x,y);
           }
         }
       }
       else {
-        labelImageOutC(x,y)=labelImageC(x,y);
+        labelImageOut.at<int>(x,y)=labelImage.at<int>(x,y);
       }
     }
   }
   for (int i = 0; i < numSurfaces; i++) {
-    neighbours(i, i) = true;
+    neighbours.at<int>(i, i) = 1;
   }
   if(pointAssignment==true) {
-    labelImageOut.deepCopy(&labelImage);
+    labelImage = labelImageOut.clone();
   }
   return neighbours;
 }
