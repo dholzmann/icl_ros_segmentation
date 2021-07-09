@@ -3,28 +3,28 @@
 namespace ObjectSegmenter{
     using namespace cv;
 
-    Mat apply(Data &data, Mat xyz, const Mat &edgeImage, const Mat &depthImg, Mat normals, bool stabilize, bool useROI, bool useCutfreeAdjacency, 
+    Mat apply(Data &data, Mat xyz, const Mat &edgeImage, Mat &depthImg, Mat normals, bool stabilize, bool useROI, bool useCutfreeAdjacency, 
         bool useCoplanarity, bool useCurvature, bool useRemainingPoints){
             surfaceSegmentation(data, xyz, edgeImage, depthImg, data.minSurfaceSize, useROI);
 
             if(data.surfaceSize>0){
               data.features=SurfaceFeatureExtractor::apply(data.labelImage, xyz, normals, SurfaceFeatureExtractor::ALL);
 	      
-              math::DynMatrix<bool> initialMatrix = m_data->segUtils->edgePointAssignmentAndAdjacencyMatrix(xyz, m_data->labelImage, 
-                                      m_data->maskImage, m_data->assignmentRadius, m_data->assignmentDistance, m_data->surfaces.size());
+              Mat initialMatrix = data.segUtils->edgePointAssignmentAndAdjacencyMatrix(xyz, data.labelImage, 
+                                      data.maskImage, data.assignmentRadius, data.assignmentDistance, data.surfaces.size());
               
-              math::DynMatrix<bool> resultMatrix(m_data->surfaces.size(), m_data->surfaces.size(), false);
+              Mat resultMatrix(data.surfaces.size(), data.surfaces.size(), false);
               
               if(useCutfreeAdjacency){
-                math::DynMatrix<bool> cutfreeMatrix = m_data->cutfree->apply(xyz, 
-                          m_data->surfaces, initialMatrix, m_data->cutfreeRansacEuclideanDistance, 
-                  m_data->cutfreeRansacPasses, m_data->cutfreeRansacTolerance, m_data->labelImage, m_data->features, m_data->cutfreeMinAngle);
-                math::GraphCutter::mergeMatrix(resultMatrix, cutfreeMatrix);
+                Mat cutfreeMatrix = data.cutfree->apply(xyz, 
+                          data.surfaces, initialMatrix, data.cutfreeRansacEuclideanDistance, 
+                  data.cutfreeRansacPasses, data.cutfreeRansacTolerance, data.labelImage, data.features, data.cutfreeMinAngle);
+                //math::GraphCutter::mergeMatrix(resultMatrix, cutfreeMatrix);
               }
             }
     }
 
-    void surfaceSegmentation(Data &data, Mat &xyz, const Mat &edgeImg, const Mat &depthImg, int minSurfaceSize, bool useROI){
+    void surfaceSegmentation(Data &data, Mat &xyz, const Mat &edgeImg, Mat &depthImg, int minSurfaceSize, bool useROI){
         data.surfaces.clear();
 
         if(useROI){//create mask
@@ -64,7 +64,7 @@ namespace ObjectSegmenter{
           }
         }
 
-        data.labelImage = Mat::zeros(edgeImg.size(),CV_32FC1);
+        //data.labelImage = Mat::zeros(edgeImg.size(),CV_32FC1);
         
         //core::Channel8u maskImageC = data.maskImage[0];
         //core::Channel32s labelImageC = data.labelImage[0];
@@ -98,7 +98,6 @@ namespace ObjectSegmenter{
           }
         }*/
 
-        Mat labelImageC;
-        int num_labels = connectedComponents(edgeImgMasked, labelImageC, 4, CV_32S);
+        int num_labels = connectedComponents(edgeImgMasked, data.labelImage, 4, CV_32S);
     }
 }

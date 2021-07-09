@@ -8,6 +8,7 @@
 
 #include "Point4f.h"
 #include "SurfaceFeatureExtractor.h"
+#include "SegmenterUtils.h"
 
 namespace ObjectSegmenter{
     using namespace cv;
@@ -65,7 +66,7 @@ namespace ObjectSegmenter{
         
         CutfreeAdjacencyFeatureExtractor* cutfree;
         SegmenterUtils* segUtils;
-        RegionDetector* region;
+        //RegionDetector* region;
                 
         std::vector<std::vector<int> > surfaces;
         std::vector<std::vector<int> > segments;
