@@ -287,82 +287,6 @@ void applyGaussianNormalSmoothing(Data &data) {
     }
 }
 
-Mat ICLImg_to_Mat(icl::core::Img32f &image, Mat &mat, int numChannel){
-    int h = image.getHeight();
-    int w = image.getWidth();
-	//std::cout << h << ", " << w << std::endl;
-    //Mat mat = Mat(w, h, CV_MAKE_TYPE(CV_32F, numChannel));
-    for(int i=0; i < h; i++){
-        for(int j=0; j<w; j++){
-            for(int k=0; k<numChannel; k++) {
-                //mat.at<float>(j, i, k) = image(i, j, k);
-				mat.at<float>(i, j, k) = image[k][j+w*i];
-            }
-        }
-      }
-    return mat;
-}
-
-Mat ICLImg_to_Mat(icl::core::Img8u &image, Mat &mat, int numChannel){
-    int h = image.getHeight();
-    int w = image.getWidth();
-    //Mat mat = Mat(h, w, CV_MAKE_TYPE(CV_8U, numChannel));
-    for(int i=0; i < h; i++){
-        for(int j=0; j<w; j++){
-            for(int k=0; k<numChannel; k++) {
-                //mat.at<int>(i, j, k) = image(i, j,k);
-				mat.at<int>(i, j, k) = image[k][j+w*i];
-            }
-        }
-      }
-    return mat;
-}
-
-void Mat_to_ICLImg(icl::core::Img32f &image, Mat &mat, int numChannel){
-    int h = image.getHeight();
-    int w = image.getWidth();
-    for(int i=0; i < h; i++){
-        for(int j=0; j<w; j++){
-            for(int k = 0; k < numChannel; k++){
-                //image(i, j, k) = mat.at<float>(i, j, k);
-				image[k][j+w*i] = mat.at<float>(i, j, k);
-            }
-        }
-      }
-}
-
-void Mat_to_ICLImg(icl::core::Img8u &image, Mat &mat, int numChannel){
-    int h = image.getHeight();
-    int w = image.getWidth();
-    for(int i=0; i < h; i++){
-        for(int j=0; j<w; j++){
-            for(int k = 0; k < numChannel; k++){
-                //image(i, j, k) = mat.at<int>(i, j, k);
-				image[k][j+w*i] = mat.at<int>(i, j, k);
-            }
-        }
-      }
-}
-
-void Mat_to_DataSegment(icl::core::DataSegment<float, 4> &image, Mat &mat, int h, int w){
-	for(int y=0; y<h; y++){
-		for(int x=0; x<w; x++){
-			int i = x + w * y;
-			Point4f* p = mat.ptr<Point4f>(y, x);
-			image[i].x = p->x;
-			image[i].y = p->y;
-			image[i].z = p->z;
-			image[i].w = p->w;
-			/*
-			image[i].x = mat.at<float>(x, y, 0);
-			image[i].y = mat.at<float>(x, y, 1);
-			image[i].z = mat.at<float>(x, y, 2);
-			image[i].w = mat.at<float>(x, y, 3);
-			*/
-		}
-	}
-}
-
 void preSeg_calculate(Mat &depthImage, Data &data){
     if (data.usedFilterFlag == false) {
 		data.filteredImage = depthImage;
@@ -372,12 +296,10 @@ void preSeg_calculate(Mat &depthImage, Data &data){
 	}
     applyNormalCalculation(data);
     applyAngleImageCalculation(data);
-	//applyImageBinarization(binarizedImage, angleImage, height, width, binarizationThreshold);
     cv::threshold(data.angleImage, data.binarizedImage, data.binarizationThreshold, 255, CV_THRESH_BINARY);  
     data.binarizedImage.convertTo(data.binarizedImage, CV_8UC1);
 }
 
 int main(int argc, char *argv[]) {
 }
-
 }

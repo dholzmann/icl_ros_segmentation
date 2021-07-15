@@ -21,17 +21,13 @@
 #include <iostream>
 #include <math.h>
 
-#include <ICLGeom/PointCloudObject.h>
-#include <ICLGeom/PointCloudCreator.h>
-#include <ICLUtils/Configurable.h>
-#include <ICLCore/DataSegment.h>
-#include <ICLGeom/Camera.h>
+#include "Point4f.h"
 
 namespace EdgeDetector{
 using namespace cv;
 
 
-typedef struct { float x, y, z, w; } Point4f;
+//typedef struct { float x, y, z, w; } Point4f;
 
 struct Data {
         int medianFilterSize = 3;
@@ -142,18 +138,6 @@ void applyAngleImageCalculation(Data &data);
 void applyGaussianNormalSmoothing(Data &data);
 
 void applyNormalCalculation(Data &data);
-
-std::string type2str(int type);
-
-Mat ICLImg_to_Mat(icl::core::Img32f &image, Mat &mat, int numChannel);
-
-Mat ICLImg_to_Mat(icl::core::Img8u &image, Mat &mat, int numChannel);
-
-void Mat_to_ICLImg(icl::core::Img32f &image, Mat &mat, int numChannel);
-
-void Mat_to_ICLImg(icl::core::Img8u &image, Mat &mat, int numChannel);
-
-void Mat_to_DataSegment(icl::core::DataSegment<float, 4> &image, Mat &mat, int h, int w);
 
 void preSeg_calculate(Mat &depthImage, Data &data);
 }

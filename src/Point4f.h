@@ -2,7 +2,7 @@
 #include <sstream>
 #include <iostream>
 
-struct Point4f{ 
+struct Point4f : Vec4f{ 
         float x, y, z, w; 
         Point4f(){
             x=0; y=0; z=0; w=0;
@@ -17,7 +17,7 @@ struct Point4f{
             z += other.z;
             w += other.w;
         }
-
+/*
         Point4f& operator/=(float other){
             x /= other;
             y /= other;
@@ -33,5 +33,5 @@ struct Point4f{
                 case 3: return w;
                 default: throw std::invalid_argument( "received invalid index for Point4f type." );
             }
-        }
+        }*/
 };

@@ -40,6 +40,8 @@
 
 #include "Point4f.h"
 
+using namespace cv;
+
 class SegmenterUtils{
 
     public:

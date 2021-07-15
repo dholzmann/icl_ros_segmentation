@@ -9,6 +9,7 @@
 #include "Point4f.h"
 #include "SurfaceFeatureExtractor.h"
 #include "SegmenterUtils.h"
+#include "CutfreeAdjacencyFeatureExtractor.h"
 
 namespace ObjectSegmenter{
     using namespace cv;

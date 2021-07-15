@@ -85,19 +85,6 @@ namespace ObjectSegmenter{
             }
           }
         }
-
-        /*
-        std::vector<std::vector<Point> > contours;
-        std::vector<Vec4i> hierarchy;
-        findContours(edgeImgMasked, contours, hierarchy, RETR_TREE, CHAIN_APPROX_SIMPLE);
-        data.surfaceSize = contours.size();
-        for(int i = 0; i < contours.size(); i++){
-          for(int j=0; j < contours[i].size(); j++){
-            Point p = contours[i][j];
-            data.labelImage.at<int>(p.y, p.x) = i;
-          }
-        }*/
-
         int num_labels = connectedComponents(edgeImgMasked, data.labelImage, 4, CV_32S);
     }
 }
