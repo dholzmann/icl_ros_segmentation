@@ -39,6 +39,7 @@
 
 #include <opencv2/opencv.hpp>
 #include "preSegmentation.h"
+#include "helper/icl_cv_helper.h"
 
 
 namespace icl{

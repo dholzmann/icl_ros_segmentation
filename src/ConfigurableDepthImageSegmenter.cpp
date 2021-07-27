@@ -226,7 +226,7 @@ namespace icl{
 
       m_data->objectEdgeDetector->setAngleNeighborhoodRange(neighbrange);
       m_data->objectEdgeDetector->setBinarizationThreshold(threshold);
-    /*
+    
     int h = depthImage.getHeight();
     int w = depthImage.getWidth();
     EdgeDetector::Data data(usedFilter, useAveraging, usedAngle, usedSmoothing, normalrange, neighbrange, threshold, avgrange, h, w);
@@ -244,16 +244,16 @@ namespace icl{
     icl::core::DataSegment<float, 4> norm = core::DataSegment<float,4>(&normalsA(0,0).x, sizeof(Vec4), normalsA.getDim(), normalsA.getWidth());
     icl::core::DataSegment<float, 4> avgNorm = core::DataSegment<float,4>(&avgNormalsA(0,0).x, sizeof(Vec4), avgNormalsA.getDim(), avgNormalsA.getWidth());
 
-    EdgeDetector::ICLImg_to_Mat(d, depth_image, 1);
+    ICLImg_to_Mat(d, depth_image, 1);
     EdgeDetector::preSeg_calculate(depth_image, data);
-    EdgeDetector::Mat_to_ICLImg(m_data->edgeImage, depth_image, 1);
-    EdgeDetector::Mat_to_ICLImg(angleI, data.angleImage, 1);
-    EdgeDetector::Mat_to_ICLImg(binImage, data.binarizedImage, 1);
+    Mat_to_ICLImg(m_data->edgeImage, depth_image, 1);
+    Mat_to_ICLImg(angleI, data.angleImage, 1);
+    Mat_to_ICLImg(binImage, data.binarizedImage, 1);
     
-    EdgeDetector::Mat_to_ICLImg(raw, data.rawImage, 1);
-    EdgeDetector::Mat_to_ICLImg(filtered, data.filteredImage, 1);
-    EdgeDetector::Mat_to_DataSegment(norm, data.normals, h, w);
-    EdgeDetector::Mat_to_DataSegment(avgNorm, data.avgNormals, h, w);
+    Mat_to_ICLImg(raw, data.rawImage, 1);
+    Mat_to_ICLImg(filtered, data.filteredImage, 1);
+    Mat_to_DataSegment(norm, data.normals, h, w);
+    Mat_to_DataSegment(avgNorm, data.avgNormals, h, w);
     setNormals(norm);
     m_data->objectEdgeDetector->setAngleImage(angleI);
     m_data->objectEdgeDetector->setDepthImage(raw);
@@ -271,7 +271,7 @@ namespace icl{
       m_data->objectEdgeDetector->setNormals(avgNorm);
     } else {
       m_data->objectEdgeDetector->setNormals(norm);
-    }*/
+    }
     
 
 
@@ -281,8 +281,8 @@ namespace icl{
 					m_data->edgeImage=m_data->objectEdgeDetector->calculate(*filteredImage->as32f(), usedFilterFlag,
 																								 useAveraging, usedSmoothingFlag);
 				}else{*/
-					m_data->edgeImage=m_data->objectEdgeDetector->calculate(*depthImage.as32f(), usedFilterFlag,
-																								 useAveraging, usedSmoothingFlag);
+					//m_data->edgeImage=m_data->objectEdgeDetector->calculate(*depthImage.as32f(), usedFilterFlag,
+					//																			 useAveraging, usedSmoothingFlag);
 				//}
 				m_data->objectEdgeDetector->applyWorldNormalCalculation(m_data->depthCamera);
 				m_data->normalImage=m_data->objectEdgeDetector->getRGBNormalImage();

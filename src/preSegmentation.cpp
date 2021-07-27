@@ -257,7 +257,11 @@ void applyGaussianNormalSmoothing(Data &data) {
 	Mat kernel = data.kernel;
 	float norm = data.kNorm;
 	int l = data.kL;
-
+	std::cout << kernel << std::endl;
+	Mat res;
+	GaussianBlur(data.normals, res, Size(5,5),-1,0.0,BORDER_ISOLATED);
+	imshow("gaus", res);
+	cv::waitKey(1);
     for (int y = 0; y < data.height; y++) {
 	    for (int x = 0; x < data.width; x++) {
 		    int i = x + data.width * y;
