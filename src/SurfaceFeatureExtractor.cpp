@@ -1,7 +1,7 @@
 #include <SurfaceFeatureExtractor.h>
 
 SurfaceFeatureExtractor::SurfaceFeature SurfaceFeatureExtractor::apply(
-                                        std::vector<Point4f> &points, std::vector<Point4f> &normals, int mode){
+                                        std::vector<Vec4f> &points, std::vector<Vec4f> &normals, int mode){
   SurfaceFeatureExtractor::SurfaceFeature feature = getInitializedStruct();
   if(normals.size()!=points.size()){
     throw std::runtime_error("points size != normals size");
@@ -27,7 +27,7 @@ std::vector<SurfaceFeatureExtractor::SurfaceFeature> SurfaceFeatureExtractor::ap
       }
       if(labelImage.at<int>(x,y)>0){
         features.at(labelImage.at<int>(x,y)-1).numPoints++;
-        update(normals.at<Point4f>(x, y), xyzh.at<Point4f>(x, y), features.at(labelImage.at<int>(x,y)-1), mode, x, y);
+        update(normals.at<Vec4f>(x, y), xyzh.at<Vec4f>(x, y), features.at(labelImage.at<int>(x,y)-1), mode, x, y);
       }
     }
   }
@@ -55,16 +55,16 @@ void SurfaceFeatureExtractor::finish(SurfaceFeature &feature, int mode){
     else feature.curvatureFactor = CURVED_2D;
   }
   if(mode&BOUNDING_BOX_3D){
-    Point4f min = feature.boundingBox3D.first;
-    Point4f max = feature.boundingBox3D.second;
+    Vec4f min = feature.boundingBox3D.first;
+    Vec4f max = feature.boundingBox3D.second;
     feature.volume = (max[0]-min[0])*(max[1]-min[1])*(max[2]-min[2]);
   }
 }
 
-void SurfaceFeatureExtractor::update(Point4f &normal, Point4f &point, SurfaceFeature &feature, int mode, int x, int y){
+void SurfaceFeatureExtractor::update(Vec4f &normal, Vec4f &point, SurfaceFeature &feature, int mode, int x, int y){
     if(mode&NORMAL_HISTOGRAM){
-      int xx = round(normal.x*5.0+5.0);//-1 -> 0, 0 -> 5, 1 -> 10
-      int yy = round(normal.y*5.0+5.0);
+      int xx = round(normal[0]*5.0+5.0);//-1 -> 0, 0 -> 5, 1 -> 10
+      int yy = round(normal[1]*5.0+5.0);
       feature.normalHistogram.at<float>(xx,yy)++;
     }
     if(mode&MEAN_NORMAL){
@@ -74,12 +74,12 @@ void SurfaceFeatureExtractor::update(Point4f &normal, Point4f &point, SurfaceFea
       feature.meanPosition+=point;
     }
     if(mode&BOUNDING_BOX_3D){
-      if(point[0]<feature.boundingBox3D.first[0]) feature.boundingBox3D.first.x=point[0];//min
-      if(point[1]<feature.boundingBox3D.first[1]) feature.boundingBox3D.first.y=(point[1]);
-      if(point[2]<feature.boundingBox3D.first[2]) feature.boundingBox3D.first.z=point[2];
-      if(point[0]>feature.boundingBox3D.second[0]) feature.boundingBox3D.second.x=point[0];//max
-      if(point[1]>feature.boundingBox3D.second[1]) feature.boundingBox3D.second.y=point[1];
-      if(point[2]>feature.boundingBox3D.second[2]) feature.boundingBox3D.second.z=point[2];
+      if(point[0]<feature.boundingBox3D.first[0]) feature.boundingBox3D.first[0]=point[0];//min
+      if(point[1]<feature.boundingBox3D.first[1]) feature.boundingBox3D.first[1]=(point[1]);
+      if(point[2]<feature.boundingBox3D.first[2]) feature.boundingBox3D.first[2]=point[2];
+      if(point[0]>feature.boundingBox3D.second[0]) feature.boundingBox3D.second[0]=point[0];//max
+      if(point[1]>feature.boundingBox3D.second[1]) feature.boundingBox3D.second[1]=point[1];
+      if(point[2]>feature.boundingBox3D.second[2]) feature.boundingBox3D.second[2]=point[2];
     }
     if(mode&BOUNDING_BOX_2D){
       if(x<feature.boundingBox2D.first.x) feature.boundingBox2D.first.x=x;//min
@@ -98,13 +98,13 @@ SurfaceFeatureExtractor::SurfaceFeature SurfaceFeatureExtractor::getInitializedS
   //feature.normalHistogram.fill(0);
   feature.normalHistogram = Mat::zeros(Size(11,11), CV_32FC(6));
   //feature.normalHistogramChannel = feature.normalHistogram[0];
-  feature.meanNormal=Point4f();
-  feature.meanPosition=Point4f();
+  feature.meanNormal=Vec4f();
+  feature.meanPosition=Vec4f();
   //feature.curvatureFactor=SurfaceFeatureExtractor::UNDEFINED; == 0
   feature.curvatureFactor = SurfaceFeatureExtractor::UNDEFINED;
   //feature.boundingBox3D.first = Vec(1000000, 1000000, 1000000, 0);
-  feature.boundingBox3D.first = Point4f(1000000, 1000000, 1000000, 0);
-  feature.boundingBox3D.second = Point4f(-1000000, -1000000, -1000000, 0);
+  feature.boundingBox3D.first = Vec4f(1000000, 1000000, 1000000, 0);
+  feature.boundingBox3D.second = Vec4f(-1000000, -1000000, -1000000, 0);
   feature.boundingBox2D.first = Point(1000000,1000000);
   feature.boundingBox2D.second = Point(-1000000, -1000000);
   feature.volume=0;

@@ -55,10 +55,10 @@ void applyWorldNormalCalculation(Mat &normalImage, Mat &avgNormals, Mat &worldNo
 				} else {
 					pWN = T2 * Mat(normalImage.at<Point3f>(y, x));
 				}
-				worldNormals.at<Point4f>(y, x).x = -pWN.at<float>(0);
-				worldNormals.at<Point4f>(y, x).y = -pWN.at<float>(1);
-				worldNormals.at<Point4f>(y, x).z = -pWN.at<float>(2);
-				worldNormals.at<Point4f>(y, x).w = 1.;
+				worldNormals.at<Vec4f>(y, x)[0] = -pWN.at<float>(0);
+				worldNormals.at<Vec4f>(y, x)[1] = -pWN.at<float>(1);
+				worldNormals.at<Vec4f>(y, x)[2] = -pWN.at<float>(2);
+				worldNormals.at<Vec4f>(y, x)[3] = 1.;
 
                 normalImage.at<int>(x, y, 0) = (int) std::abs(pWN.at<float>(0) * 255.);
 				normalImage.at<int>(x, y, 1) = (int) std::abs(pWN.at<float>(1) * 255.);
@@ -102,8 +102,8 @@ float maxAngle(float snr, float snl, float snt, float snb,
 	return max;
 }
 
-float scalar(Point4f &a, Point4f &b){
-    return (a.x * b.x + a.y * b.y + a.z * b.z);
+float scalar(Vec4f &a, Vec4f &b){
+    return (a[0] * b[0] + a[1] * b[1] + a[2] * b[2]);
 }
 
 void applyNormalCalculation(Data &data) {
@@ -113,11 +113,11 @@ void applyNormalCalculation(Data &data) {
             //int i = x + width * y;
             //std::cout << y << "," << x << std::endl;
             if (y < r || y >= data.height- r || x < r || x >= data.width - r){
-                Point4f* p = data.normals.ptr<Point4f>(y, x);
-                p->x = 0;
-                p->y = 0;
-                p->z = 0;
-				p->w = 0;
+                Vec4f p = data.normals.at<Vec4f>(y, x);
+                p[0] = 0;
+                p[1] = 0;
+                p[2] = 0;
+				p[3] = 0;
             } else {
                 // cross product normal determination
                 
@@ -141,18 +141,18 @@ void applyNormalCalculation(Data &data) {
 				n01[1] = n1[1] / norm;
 				n01[2] = n1[2] / norm;
                 
-                data.normals.ptr<Point4f>(y, x)->x = n01[0];
-			    data.normals.ptr<Point4f>(y, x)->y = n01[1];
-				data.normals.ptr<Point4f>(y, x)->z = n01[2];
-				data.normals.ptr<Point4f>(y, x)->w = 1;
+                data.normals.at<Vec4f>(y, x)[0] = n01[0];
+			    data.normals.at<Vec4f>(y, x)[1] = n01[1];
+				data.normals.at<Vec4f>(y, x)[2] = n01[2];
+				data.normals.at<Vec4f>(y, x)[3] = 1;
             }
         }
     }
     if (data.useNormalAveraging && !data.useGaussSmoothing) {
         applyLinearNormalAveraging(data);
     } else if (data.useNormalAveraging && data.useGaussSmoothing) {
-        //GaussianBlur(data.normals, data.avgNormals, Size(data.normalAveragingRange,data.normalAveragingRange), 0, 0);
-		applyGaussianNormalSmoothing(data);
+        GaussianBlur(data.normals, data.avgNormals, Size(data.normalAveragingRange,data.normalAveragingRange), 0, 0, BORDER_ISOLATED);
+		//applyGaussianNormalSmoothing(data);
     }
 }
 
@@ -163,22 +163,20 @@ void applyLinearNormalAveraging(Data &data){
 		for (int x = 0; x < data.width; x++) {
 			if (y < r || y >= data.height - r || x < r
 					|| x >= data.width - r) {
-				data.avgNormals.at<Point4f>(y, x) = data.normals.at<Point4f>(y, x);
+				data.avgNormals.at<Vec4f>(y, x) = data.normals.at<Vec4f>(y, x);
 			} else {
-				Point4f avg;
-				avg.x = 0, avg.y = 0, avg.z = 0, avg.w = 0;
+				Vec4f avg(0,0,0,0);
 				for (int sx = -r; sx <= r; sx++) {
 					for (int sy = -r; sy <= r; sy++) {
-						avg.x += data.normals.at<Point4f>((y + sy), (x + sx)).x;
-                        avg.y += data.normals.at<Point4f>((y + sy), (x + sx)).y;
-						avg.z += data.normals.at<Point4f>((y + sy), (x + sx)).z;
+						//avg[0] += data.normals.at<Vec4f>((y + sy), (x + sx))[0];
+                        //avg[1] += data.normals.at<Vec4f>((y + sy), (x + sx))[1];
+						//avg[2] += data.normals.at<Vec4f>((y + sy), (x + sx))[2];
+						avg += data.normals.at<Vec4f>((y + sy), (x + sx));
 					}
 				}
-				avg.x /= ((1 + 2 * r) * (1 + 2 * r));
-				avg.y /= ((1 + 2 * r) * (1 + 2 * r));
-				avg.z /= ((1 + 2 * r) * (1 + 2 * r));
-				avg.w = 1;
-				data.avgNormals.at<Point4f>(y, x) = avg;
+				avg /= ((1 + 2 * r) * (1 + 2 * r));
+				avg[3] = 1;
+				data.avgNormals.at<Vec4f>(y, x) = avg;
 			}
 		}
 	}
@@ -222,14 +220,14 @@ void applyAngleImageCalculation(Data &data) {
 				float snbl = 0; //sum bottom-left
 				for (int z = 1; z <= data.neighborhoodRange; z++) {
 					//angle between normals
-                    snr += flipAngle(scalar(norm.at<Point4f>(y, x),(norm.at<Point4f>(y, x+z))));
-					snl += flipAngle(scalar(norm.at<Point4f>(y, x),(norm.at<Point4f>(y, x-z))));
-					snt += flipAngle(scalar(norm.at<Point4f>(y, x),(norm.at<Point4f>(y+z, x))));
-					snb += flipAngle(scalar(norm.at<Point4f>(y, x),(norm.at<Point4f>(y-z, x))));
-					sntr += flipAngle(scalar(norm.at<Point4f>(y, x),(norm.at<Point4f>(y+z, x+z))));
-					sntl += flipAngle(scalar(norm.at<Point4f>(y, x),(norm.at<Point4f>(y+z, x-z))));
-					snbr += flipAngle(scalar(norm.at<Point4f>(y, x),(norm.at<Point4f>(y-z, x+z))));
-					snbl += flipAngle(scalar(norm.at<Point4f>(y, x),(norm.at<Point4f>(y-z, x-z))));
+                    snr += flipAngle(scalar(norm.at<Vec4f>(y, x),(norm.at<Vec4f>(y, x+z))));
+					snl += flipAngle(scalar(norm.at<Vec4f>(y, x),(norm.at<Vec4f>(y, x-z))));
+					snt += flipAngle(scalar(norm.at<Vec4f>(y, x),(norm.at<Vec4f>(y+z, x))));
+					snb += flipAngle(scalar(norm.at<Vec4f>(y, x),(norm.at<Vec4f>(y-z, x))));
+					sntr += flipAngle(scalar(norm.at<Vec4f>(y, x),(norm.at<Vec4f>(y+z, x+z))));
+					sntl += flipAngle(scalar(norm.at<Vec4f>(y, x),(norm.at<Vec4f>(y+z, x-z))));
+					snbr += flipAngle(scalar(norm.at<Vec4f>(y, x),(norm.at<Vec4f>(y-z, x+z))));
+					snbl += flipAngle(scalar(norm.at<Vec4f>(y, x),(norm.at<Vec4f>(y-z, x-z))));
 				}
 				snr /= data.neighborhoodRange;
 				snl /= data.neighborhoodRange;
@@ -267,25 +265,25 @@ void applyGaussianNormalSmoothing(Data &data) {
 		    int i = x + data.width * y;
 		    if (y < l || y >= data.height - l || x < l || x >= data.width - l
 				    || l == 0) {
-			    data.avgNormals.at<Point4f>(y, x) = data.normals.at<Point4f>(y, x);
+			    data.avgNormals.at<Vec4f>(y, x) = data.normals.at<Vec4f>(y, x);
 		    } else {
-			    Point4f avg;
-			    avg.x = 0, avg.y = 0, avg.z = 0, avg.w = 0;
+			    Vec4f avg(0,0,0,0);
 			    for (int sx = -l; sx <= l; sx++) {
 				    for (int sy = -l; sy <= l; sy++) {
-					    avg.x += data.normals.at<Point4f>(y + sy, x + sx).x
+					    avg[0] += data.normals.at<Vec4f>(y + sy, x + sx)[0]
 							    * kernel.at<float>(sx + l, sy + l);
-					    avg.y += data.normals.at<Point4f>(y + sy, x + sx).y
+					    avg[1] += data.normals.at<Vec4f>(y + sy, x + sx)[1]
 							    * kernel.at<float>(sx + l, sy + l);
-					    avg.z += data.normals.at<Point4f>(y + sy, x + sx).z
+					    avg[2] += data.normals.at<Vec4f>(y + sy, x + sx)[2]
 							    * kernel.at<float>(sx + l, sy + l);
 				    }
 			    }
-			    avg.x /= norm;
-			    avg.y /= norm;
-			    avg.z /= norm;
-			    avg.w = 1;
-			    data.avgNormals.at<Point4f>(y,x) = avg;
+			    //avg.x /= norm;
+			    //avg.y /= norm;
+			    //avg.z /= norm;
+				avg /= norm;
+			    avg[3] = 1;
+			    data.avgNormals.at<Vec4f>(y,x) = avg;
 		    }
 	    }
     }

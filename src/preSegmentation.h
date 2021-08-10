@@ -21,13 +21,10 @@
 #include <iostream>
 #include <math.h>
 
-#include "Point4f.h"
 
 namespace EdgeDetector{
 using namespace cv;
 
-
-//typedef struct { float x, y, z, w; } Point4f;
 
 struct Data {
         int medianFilterSize = 3;
@@ -127,7 +124,7 @@ float flipAngle(float angle);
 
 float maxAngle(float snr, float snl, float snt, float snb, float snbl, float snbr, float sntl, float sntr);
 
-float scalar(Point4f &a, Point4f &b);
+float scalar(Vec4f &a, Vec4f &b);
 
 void applyLinearNormalAveraging(Data &data);
 

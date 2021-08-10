@@ -38,8 +38,6 @@
 #include <iostream>
 #include <math.h>
 
-#include "Point4f.h"
-
 using namespace cv;
 
 class SegmenterUtils{

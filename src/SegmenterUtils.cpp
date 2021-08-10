@@ -256,7 +256,7 @@ Mat SegmenterUtils::createColorImage(Mat &labelImage){
   for(int y=0;y<size.height;++y){
     for(int x=0;x<size.width;++x){
       int i = x+size.width*y;
-      if(xyzh.at<Point4f>(y, x)[0]<xMin || xyzh.at<Point4f>(y, x)[0]>xMax || xyzh.at<Point4f>(y, x)[1]<yMin || xyzh.at<Point4f>(y, x)[1]>yMax || xyzh.at<Point4f>(y, x)[2]<zMin || xyzh.at<Point4f>(y, x)[2]>zMax){
+      if(xyzh.at<Vec4f>(y, x)[0]<xMin || xyzh.at<Vec4f>(y, x)[0]>xMax || xyzh.at<Vec4f>(y, x)[1]<yMin || xyzh.at<Vec4f>(y, x)[1]>yMax || xyzh.at<Vec4f>(y, x)[2]<zMin || xyzh.at<Vec4f>(y, x)[2]>zMax){
         maskImage.at<int>(x,y)=1;
       }else{
         maskImage.at<int>(x,y)=0;

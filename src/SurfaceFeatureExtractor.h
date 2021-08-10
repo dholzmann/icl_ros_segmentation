@@ -5,7 +5,6 @@
 #include <iostream>
 #include <math.h>
 
-#include "Point4f.h"
 /// class for extraction of surface features.
 /** The SurfaceFeatureExtractor class computes normalHistograms, meanNormals, meanPosition, and curvatureFactor(planar, 1D curved, 2D curved) for sets of points. */
 using namespace cv;
@@ -29,11 +28,11 @@ class SurfaceFeatureExtractor{
         Mat normalHistogram;
         //core::Channel32f normalHistogramChannel;
         //Vec meanNormal;//mean normal
-        Point4f meanNormal;
+        Vec4f meanNormal;
         //Vec meanPosition;//mean position
-        Point4f meanPosition;
+        Vec4f meanPosition;
         int curvatureFactor;//curvature Factor from enum CurvatureFactor
-        std::pair<Point4f,Point4f> boundingBox3D;
+        std::pair<Vec4f,Vec4f> boundingBox3D;
         std::pair<Point2f,Point2f> boundingBox2D;
         float volume;//volume of the 3D bounding box
     }SurfaceFeature;
@@ -53,7 +52,7 @@ class SurfaceFeatureExtractor{
         @param mode the mode from Mode enum (e.g. A | B)
         @return the SurfaceFeature struct.
     */
-    static SurfaceFeature apply(std::vector<Point4f> &points, std::vector<Point4f> &normals, int mode=ALL);
+    static SurfaceFeature apply(std::vector<Vec4f> &points, std::vector<Vec4f> &normals, int mode=ALL);
 
     /// Applies the surface feature calculation for all segments in the label image
     /** @param labelImage the label image of the segmentation
@@ -74,6 +73,6 @@ class SurfaceFeatureExtractor{
   private:
 
     static SurfaceFeature getInitializedStruct();
-    static void update(Point4f &normal, Point4f &point, SurfaceFeature &feature, int mode, int x=0, int y=0);
+    static void update(Vec4f &normal, Vec4f &point, SurfaceFeature &feature, int mode, int x=0, int y=0);
     static void finish(SurfaceFeature &feature, int mode);
 };

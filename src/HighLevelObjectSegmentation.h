@@ -6,7 +6,6 @@
 #include <iostream>
 #include <math.h>
 
-#include "Point4f.h"
 #include "SurfaceFeatureExtractor.h"
 #include "SegmenterUtils.h"
 #include "CutfreeAdjacencyFeatureExtractor.h"
