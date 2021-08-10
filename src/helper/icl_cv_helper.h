@@ -7,8 +7,6 @@
 #include <opencv2/opencv.hpp>
 #include <opencv2/core/mat.hpp>
 
-#include "Point4f.h"
-
 using namespace cv;
 
 Mat ICLImg_to_Mat(icl::core::Img32f &image, Mat &mat, int numChannel);

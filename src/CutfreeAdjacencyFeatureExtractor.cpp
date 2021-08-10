@@ -33,13 +33,13 @@ Mat CutfreeAdjacencyFeatureExtractor::apply(Mat &xyzh,
   for(unsigned int x=0; x<cutfreeMatrix.size().height; x++){
     cutfreeMatrix.at<int>(x,x)=false;
   }
-  Mat_<PlanarRansacEstimator::Result> result = m_data->ransac->apply(xyzh, surfaces,
+  std::vector<std::vector<PlanarRansacEstimator::Result>> result = m_data->ransac->apply(xyzh, surfaces,
                 cutfreeMatrix, euclideanDistance, passes, tolerance,
                 PlanarRansacEstimator::ON_ONE_SIDE, labelImage);
 
-  for(unsigned int x=0; x<result.size().height; x++){
-    for(unsigned int y=0; y<result.size().width; y++){
-      if(result(x,y).nacc>=result.at<PlanarRansacEstimator::Result>(x,y).acc){
+  for(unsigned int x=0; x<static_cast<int>(result.size()); x++){
+    for(unsigned int y=0; y<static_cast<int>(result[0].size()); y++){
+      if(result[x][y].nacc>=result[x][y].acc){
         cutfreeMatrix.at<int>(x,y)=false;
         cutfreeMatrix.at<int>(y,x)=false;
       }
@@ -69,13 +69,13 @@ Mat CutfreeAdjacencyFeatureExtractor::apply(Mat &xyzh,
       }
     }
   }
-  Mat_<PlanarRansacEstimator::Result> result = m_data->ransac->apply(xyzh, surfaces,
+  std::vector<std::vector<PlanarRansacEstimator::Result>> result = m_data->ransac->apply(xyzh, surfaces,
                 cutfreeMatrix, euclideanDistance, passes, tolerance,
                 PlanarRansacEstimator::ON_ONE_SIDE, labelImage);
 
-  for(unsigned int x=0; x<result.size().height; x++){
-    for(unsigned int y=0; y<result.size().width; y++){
-      if(result(x,y).nacc>=result(x,y).acc){
+  for(unsigned int x=0; x<static_cast<int>(result.size()); x++){
+    for(unsigned int y=0; y<static_cast<int>(result[0].size()); y++){
+      if(result[x][y].nacc>=result[x][y].acc){
         cutfreeMatrix.at<int>(x,y)=false;
         cutfreeMatrix.at<int>(y,x)=false;
       }

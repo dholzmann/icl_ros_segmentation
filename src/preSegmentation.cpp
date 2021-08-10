@@ -302,6 +302,6 @@ void preSeg_calculate(Mat &depthImage, Data &data){
     data.binarizedImage.convertTo(data.binarizedImage, CV_8UC1);
 }
 
-int main(int argc, char *argv[]) {
-}
+//int main(int argc, char *argv[]) {
+//}
 }

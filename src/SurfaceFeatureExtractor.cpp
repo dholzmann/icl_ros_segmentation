@@ -92,17 +92,10 @@ void SurfaceFeatureExtractor::update(Vec4f &normal, Vec4f &point, SurfaceFeature
 SurfaceFeatureExtractor::SurfaceFeature SurfaceFeatureExtractor::getInitializedStruct(){
   SurfaceFeatureExtractor::SurfaceFeature feature;
   feature.numPoints=0;
-  //feature.normalHistogram.setSize(utils::Size(11,11));
-  //feature.normalHistogram.setChannels(1);
-  //feature.normalHistogram.setFormat(core::formatMatrix);
-  //feature.normalHistogram.fill(0);
   feature.normalHistogram = Mat::zeros(Size(11,11), CV_32FC(6));
-  //feature.normalHistogramChannel = feature.normalHistogram[0];
   feature.meanNormal=Vec4f();
   feature.meanPosition=Vec4f();
-  //feature.curvatureFactor=SurfaceFeatureExtractor::UNDEFINED; == 0
   feature.curvatureFactor = SurfaceFeatureExtractor::UNDEFINED;
-  //feature.boundingBox3D.first = Vec(1000000, 1000000, 1000000, 0);
   feature.boundingBox3D.first = Vec4f(1000000, 1000000, 1000000, 0);
   feature.boundingBox3D.second = Vec4f(-1000000, -1000000, -1000000, 0);
   feature.boundingBox2D.first = Point(1000000,1000000);

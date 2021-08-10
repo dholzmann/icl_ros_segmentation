@@ -61,11 +61,11 @@ void Mat_to_DataSegment(icl::core::DataSegment<float, 4> &image, Mat &mat, int h
 	for(int y=0; y<h; y++){
 		for(int x=0; x<w; x++){
 			int i = x + w * y;
-			Point4f* p = mat.ptr<Point4f>(y, x);
-			image[i].x = p->x;
-			image[i].y = p->y;
-			image[i].z = p->z;
-			image[i].w = p->w;
+			Vec4f p = mat.at<Vec4f>(y, x);
+			image[i].x = p[0];
+			image[i].y = p[1];
+			image[i].z = p[2];
+			image[i].w = p[3];
 		}
 	}
 }

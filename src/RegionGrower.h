@@ -22,12 +22,12 @@ class RegionGrower{
         @return the result label image
     */
     template<class Criterion>
-    const Mat &apply(const Mat &image, Criterion crit, Mat *initialMask = 0,
+    const Mat &apply(const Mat_<int> &image, Criterion crit, Mat *initialMask = 0,
                         const unsigned int minSize=0, const unsigned int startID=1){
       this->result=Mat(image);
       //this->mask=Img8u(image.getParams());
       Mat &useMask = initialMask ? *initialMask : this->mask;
-      region_grow<Mat,CV_8UC1,1, Criterion>(image, useMask, this->result, crit, minSize, startID);
+      region_grow<Mat,int,1, Criterion>(image, useMask, this->result, crit, minSize, startID);
       return this->result;
     }
 
@@ -39,7 +39,7 @@ class RegionGrower{
         @param startID the start id for the result label image
         @return the result label image
     */
-    const Mat &applyColorImageGrowing(const Mat &image, float const th, Mat *initialMask = 0,
+    const Mat &applyColorImageGrowing(const Mat_<int> &image, float const th, Mat *initialMask = 0,
                         const unsigned int minSize=0, const unsigned int startID=1){
       this->result=Mat(image.size(),1);
       Mat &useMask = initialMask ? *initialMask : this->mask;
@@ -56,12 +56,11 @@ class RegionGrower{
         @return the result label image
     */
     template<class Criterion>
-    const Mat &apply(const Mat &dataseg, Criterion crit, Mat *initialMask = 0,
+    const Mat &apply(const Mat_<float> &dataseg, Criterion crit, Mat *initialMask = 0,
                         const unsigned int minSize=0, const unsigned int startID=1){
-      core::Img8u &useMask = initialMask ? *initialMask : this->mask;
-      this->result.setSize(dataseg.getSize());
-      this->result.setChannels(1);
-      region_grow<core::DataSegment<float,4>,float,4, Criterion>(dataseg, useMask, this->result, crit, minSize, startID);
+      Mat &useMask = initialMask ? *initialMask : this->mask;
+      this->result = cv::Mat(dataseg.size(), CV_32FC1);
+      region_grow<Mat,float,4, Criterion>(dataseg, useMask, this->result, crit, minSize, startID);
       return this->result;
     }
 
@@ -74,7 +73,7 @@ class RegionGrower{
         @param startID the start id for the result label image
         @return the result label image
     */
-    const Mat &applyFloat4EuclideanDistance(const Mat &dataseg, Mat mask,
+    const Mat &applyFloat4EuclideanDistance(const Mat_<float> &dataseg, Mat mask,
                         const int threshold, const unsigned int minSize=0, const unsigned int startID=1){
       return apply(dataseg, Float4EuclideanDistance(threshold), &mask, minSize, startID);
     }
@@ -88,7 +87,7 @@ class RegionGrower{
         @param startID the start id for the result label image
         @return the result label image
     */
-    const Mat &applyEqualThreshold(const Mat &image, Mat mask, const int threshold,
+    const Mat &applyEqualThreshold(const Mat_<int> &image, Mat mask, const int threshold,
                         const unsigned int minSize=0, const unsigned int startID=1){
       return apply(image, EqualThreshold(threshold), &mask, minSize, startID);
     }
@@ -113,7 +112,7 @@ class RegionGrower{
       RegionGrowerDataAccessor(const T &t){};
       int w() const { return 0; }
       int h() const { return 0; }
-      math::FixedColVector<DataT, DIM> operator()(int x, int y) const { return Vec<DataT,DIM>(); }
+      Vec<DataT, DIM> operator()(int x, int y) const { return Vec<DataT,DIM>(); }
     };
 
     static float dist3u8(const Vec3i &a, const Vec3i &b) {
@@ -137,11 +136,16 @@ class RegionGrower{
       }
     };
 
-
     struct Float4EuclideanDistance{
       float t;
       Float4EuclideanDistance(float t):t(t){}
-      bool operator()(Vec3f &a, const Vec3f &b) const{
+      bool operator()(const Vec4f &a, const Vec4f &b) const{
+        return norm(a,b, NORM_L2) < t;
+      }
+      bool operator()(const Vec2i &a, const Vec2i &b) const{
+        return norm(a,b, NORM_L2) < t;
+      }
+      bool operator()(const Vec3f &a, const Vec3f &b) const{
         return norm(a,b, NORM_L2) < t;
       }
     };
@@ -157,9 +161,9 @@ class RegionGrower{
       RegionGrowerDataAccessor<T,DataT,DIM> a(data);
 
       Mat processed = mask;
-      Mat p = processed[0];
+      Mat p = processed;
       std::vector<int> r;
-      Mat res = result[0];
+      Mat res = result;
       result = 0;
 
       int nextID = startID;
@@ -169,7 +173,7 @@ class RegionGrower{
 
       for(int y=0;y<a.h();++y){
         for(int x=0;x<a.w();++x){
-          if(!p(x,y) && crit(a(x,y),a(x,y))){
+          if(!p.at<bool>(x,y) && crit(a(x,y),a(x,y))){
             r.clear();
             flood_fill<T,DataT,DIM,Criterion>(a ,x ,y ,p, crit, r, res, nextID++);
             if(r.size()<minSize){
@@ -185,8 +189,8 @@ class RegionGrower{
       //clear regions smaller minSize
       for(unsigned int i=0; i<clear.size(); i++){
         for(unsigned int j=0; j<clear.at(i).size(); j++){
-          p[clear.at(i).at(j)]=false;
-          res[clear.at(i).at(j)]=0;
+          p.at<bool>(clear.at(i).at(j))=false;
+          res.at<int>(clear.at(i).at(j))=0;
         }
       }
     }
@@ -200,7 +204,7 @@ class RegionGrower{
     RegionGrowerDataAccessor(const Mat &image):c(image){}
     int w() const { return c.size().width; }
     int h() const { return c.size().height; }
-    Vec2i operator()(int x, int y) const { return Vec2i(c.at<Point>(x,y)); }
+    int operator()(int x, int y) const { return c.at<int>(x,y); }
   };
 
   template<>
@@ -212,7 +216,8 @@ class RegionGrower{
     int w() const { return c.size().width; }
     int h() const { return c.size().height; }
     Vec3i operator()(int x, int y) const {
-      return Vec3i(c.at<int>(x,y,0), c.at<int>(x,y,1), c.at<int>(x,y,2));
+      //return Vec3i(c.at<int>(x,y,0), c.at<int>(x,y,1), c.at<int>(x,y,2));
+      return c.at<Vec3i>(x,y);
     }
   };
 
@@ -233,8 +238,8 @@ class RegionGrower{
   void RegionGrower::flood_fill(const RegionGrowerDataAccessor<T,DataT,DIM> &a, int xStart, int yStart,
                             Mat &processed, Criterion crit, std::vector<int> &result,  Mat &result2, int id){
     std::vector<Point> stack(1,Point(xStart,yStart));
-    processed(xStart,yStart) = true;//update mask
-    result2(xStart,yStart) = id;//update result image
+    processed.at<bool>(xStart,yStart) = true;//update mask
+    result2.at<int>(xStart,yStart) = id;//update result image
     result.push_back(xStart+yStart*a.w());//add to region vector
     unsigned int next = 0;
     while(next < stack.size()){

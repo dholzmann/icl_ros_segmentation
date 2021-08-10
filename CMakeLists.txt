@@ -67,13 +67,25 @@ set(LIB_SRC
 	src/preSegmentation.cpp
   src/HighLevelObjectSegmentation.cpp
   src/SurfaceFeatureExtractor.cpp
+  src/CurvatureFeatureExtractor.cpp
+  src/CutfreeAdjacencyFeatureExtractor.cpp
+  src/FeatureGraphSegmenter.cpp
+  src/PlanarRansacEstimator.cpp
+  src/RemainingPointsFeatureExtractor.cpp
+  src/SegmenterUtils.cpp
 	)
 set(LIB_INC
 	src/Kinect.h
 	src/preSegmentation.h
   src/HighLevelObjectSegmentation.h
-  src/Point4f.h
   src/SurfaceFeatureExtractor.h
+  src/CurvatureFeatureExtractor.h
+  src/CutfreeAdjacencyFeatureExtractor.h
+  src/FeatureGraphSegmenter.h
+  src/PlanarRansacEstimator.h
+  src/RemainingPointsFeatureExtractor.h
+  src/SegmenterUtils.h
+  src/RegionGrower.h
 )
 
 ## Declare a C++ library

@@ -84,7 +84,7 @@ class PlanarRansacEstimator{
         @param labelImage the labelImage with the point label
         @return matrix of Result structs.
     */
-    Mat_<Result> apply(Mat &xyzh, std::vector<std::vector<int> > &pointIDs,
+    std::vector<std::vector<Result>> apply(Mat &xyzh, std::vector<std::vector<int> > &pointIDs,
                 Mat &testMatrix, float threshold, int passes, int tolerance, int optimization, Mat labelImage);
 
 
@@ -144,7 +144,7 @@ class PlanarRansacEstimator{
     Result createResult(std::vector<Vec4f> &n0, std::vector<float> &dist, std::vector<int> &cAbove, std::vector<int> &cBelow, std::vector<int> &cOn,
             float threshold, int passes, int tolerance, int optimization, int numPoints);
 
-    Mat_<Result> createResultMatrix(Mat &testMatrix, std::vector<int> &start, std::vector<int> &end, std::vector<int> &adjs,
+    std::vector<std::vector<PlanarRansacEstimator::Result>> createResultMatrix(Mat &testMatrix, std::vector<int> &start, std::vector<int> &end, std::vector<int> &adjs,
                 std::vector<int> &cAbove, std::vector<int> &cBelow, std::vector<int> &cOn, std::vector<std::vector<int> > &pointIDs,
                 std::vector<std::vector<Vec4f> > &n0Pre, std::vector<std::vector<float> > &distPre, float threshold, int passes, int tolerance, int optimization);
 

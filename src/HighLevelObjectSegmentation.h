@@ -6,12 +6,10 @@
 #include <iostream>
 #include <math.h>
 
-#include "SurfaceFeatureExtractor.h"
 #include "SegmenterUtils.h"
 #include "CutfreeAdjacencyFeatureExtractor.h"
-
+using namespace cv;
 namespace ObjectSegmenter{
-    using namespace cv;
 
     struct Data {
 
@@ -115,4 +113,10 @@ namespace ObjectSegmenter{
             
         float graphCutThreshold;
     };
-}
+
+    Mat apply(Data &data, Mat xyz, const Mat &edgeImage, Mat &depthImg, Mat normals, bool stabilize, bool useROI, bool useCutfreeAdjacency, 
+        bool useCoplanarity, bool useCurvature, bool useRemainingPoints);
+    
+    void surfaceSegmentation(Data &data, Mat &xyz, const Mat &edgeImg, Mat &depthImg, int minSurfaceSize, bool useROI);
+
+} // namespace Objectsegmenter
