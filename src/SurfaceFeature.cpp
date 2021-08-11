@@ -1,8 +1,8 @@
-#include <SurfaceFeatureExtractor.h>
+#include <SurfaceFeature.h>
 
-SurfaceFeatureExtractor::SurfaceFeature SurfaceFeatureExtractor::apply(
+SurfaceFeatureExtract::SurfaceRegionFeature SurfaceFeatureExtract::apply(
                                         std::vector<Vec4f> &points, std::vector<Vec4f> &normals, int mode){
-  SurfaceFeatureExtractor::SurfaceFeature feature = getInitializedStruct();
+  SurfaceFeatureExtract::SurfaceRegionFeature feature = getInitializedStruct();
   if(normals.size()!=points.size()){
     throw std::runtime_error("points size != normals size");
   }
@@ -15,15 +15,15 @@ SurfaceFeatureExtractor::SurfaceFeature SurfaceFeatureExtractor::apply(
 }
 
 
-std::vector<SurfaceFeatureExtractor::SurfaceFeature> SurfaceFeatureExtractor::apply (Mat labelImage, Mat &xyzh, Mat &normals, int mode){
+std::vector<SurfaceFeatureExtract::SurfaceRegionFeature> SurfaceFeatureExtract::apply (Mat labelImage, Mat &xyzh, Mat &normals, int mode){
   unsigned int w = labelImage.size().width;
   unsigned int h = labelImage.size().height;
 
-  std::vector<SurfaceFeatureExtractor::SurfaceFeature> features;
+  std::vector<SurfaceFeatureExtract::SurfaceRegionFeature> features;
   for(unsigned int y=0; y<h; y++){
     for(unsigned int x=0; x<w; x++){
       while((int)features.size() < labelImage.at<int>(x,y)){
-        features.push_back(SurfaceFeatureExtractor::getInitializedStruct());
+        features.push_back(SurfaceFeatureExtract::getInitializedStruct());
       }
       if(labelImage.at<int>(x,y)>0){
         features.at(labelImage.at<int>(x,y)-1).numPoints++;
@@ -38,7 +38,7 @@ std::vector<SurfaceFeatureExtractor::SurfaceFeature> SurfaceFeatureExtractor::ap
 }
 
 
-void SurfaceFeatureExtractor::finish(SurfaceFeature &feature, int mode){
+void SurfaceFeatureExtract::finish(SurfaceRegionFeature &feature, int mode){
   feature.meanNormal/=feature.numPoints;
   feature.meanPosition/=feature.numPoints;
   if(mode&CURVATURE_FACTOR || mode&NORMAL_HISTOGRAM){
@@ -61,7 +61,7 @@ void SurfaceFeatureExtractor::finish(SurfaceFeature &feature, int mode){
   }
 }
 
-void SurfaceFeatureExtractor::update(Vec4f &normal, Vec4f &point, SurfaceFeature &feature, int mode, int x, int y){
+void SurfaceFeatureExtract::update(Vec4f &normal, Vec4f &point, SurfaceRegionFeature &feature, int mode, int x, int y){
     if(mode&NORMAL_HISTOGRAM){
       int xx = round(normal[0]*5.0+5.0);//-1 -> 0, 0 -> 5, 1 -> 10
       int yy = round(normal[1]*5.0+5.0);
@@ -89,13 +89,13 @@ void SurfaceFeatureExtractor::update(Vec4f &normal, Vec4f &point, SurfaceFeature
     }
   }
 
-SurfaceFeatureExtractor::SurfaceFeature SurfaceFeatureExtractor::getInitializedStruct(){
-  SurfaceFeatureExtractor::SurfaceFeature feature;
+SurfaceFeatureExtract::SurfaceRegionFeature SurfaceFeatureExtract::getInitializedStruct(){
+  SurfaceFeatureExtract::SurfaceRegionFeature feature;
   feature.numPoints=0;
   feature.normalHistogram = Mat::zeros(Size(11,11), CV_32FC(6));
   feature.meanNormal=Vec4f();
   feature.meanPosition=Vec4f();
-  feature.curvatureFactor = SurfaceFeatureExtractor::UNDEFINED;
+  feature.curvatureFactor = SurfaceFeatureExtract::UNDEFINED;
   feature.boundingBox3D.first = Vec4f(1000000, 1000000, 1000000, 0);
   feature.boundingBox3D.second = Vec4f(-1000000, -1000000, -1000000, 0);
   feature.boundingBox2D.first = Point(1000000,1000000);
@@ -104,7 +104,7 @@ SurfaceFeatureExtractor::SurfaceFeature SurfaceFeatureExtractor::getInitializedS
   return feature;
 }
 
-float SurfaceFeatureExtractor::matchNormalHistograms(Mat &a, Mat &b){
+float SurfaceFeatureExtract::matchNormalHistograms(Mat &a, Mat &b){
   float sum=0;
   for(size_t i=0; i<11; i++){
     for(size_t j=0; j<11; j++){

@@ -6,8 +6,8 @@
 #include <iostream>
 #include <math.h>
 
-#include "SegmenterUtils.h"
-#include "CutfreeAdjacencyFeatureExtractor.h"
+#include "SegmenterHelper.h"
+#include "CutfreeAdjacencyFeature.h"
 using namespace cv;
 namespace ObjectSegmenter{
 
@@ -62,8 +62,8 @@ namespace ObjectSegmenter{
             ~Data() {
             }
         
-        CutfreeAdjacencyFeatureExtractor* cutfree;
-        SegmenterUtils* segUtils;
+        CutfreeAdjacencyFeature* cutfree;
+        SegmenterHelper* segUtils;
         //RegionDetector* region;
                 
         std::vector<std::vector<int> > surfaces;
@@ -72,7 +72,7 @@ namespace ObjectSegmenter{
         Mat maskImage;
         Mat labelImage;
 
-        std::vector<SurfaceFeatureExtractor::SurfaceFeature> features;
+        std::vector<SurfaceFeatureExtract::SurfaceRegionFeature> features;
         
         float xMinROI, xMaxROI, yMinROI, yMaxROI, zMinROI, zMaxROI;
         

@@ -1,13 +1,13 @@
 #pragma once
 #include <opencv2/opencv.hpp>
 #include <opencv2/core/matx.hpp>
-#include "SurfaceFeatureExtractor.h"
-#include "SegmenterUtils.h"
+#include "SurfaceFeature.h"
+#include "SegmenterHelper.h"
 
 /// class for curvature feature (open and occluded objects).
 /** This class implements the curvature feature for feature-graph based segmentation.*/
 using namespace cv;
-class CurvatureFeatureExtractor{
+class CurvatureFeature{
 
   public:
 
@@ -28,22 +28,22 @@ class CurvatureFeatureExtractor{
       @param outlierTolerance outlier tolerance for occlusion check
       @return the boolean curvature matrix */
     static Mat_<bool> apply(Mat &depthImg, Mat &xyz, Mat_<bool> &initialMatrix,
-                      std::vector<SurfaceFeatureExtractor::SurfaceFeature> features,
+                      std::vector<SurfaceFeatureExtract::SurfaceRegionFeature> features,
                       std::vector<std::vector<int> > &surfaces, Mat &normals, bool useOpenObjects=true, bool useOccludedObjects=true,
                       float histogramSimilarity=0.5, int distance=10, float maxError=10., int ransacPasses=20, float distanceTolerance=3., float outlierTolerance=5.);
 
   private:
 
-    static bool computeOpenObject(Mat &normals, SurfaceFeatureExtractor::SurfaceFeature feature1, SurfaceFeatureExtractor::SurfaceFeature feature2,
+    static bool computeOpenObject(Mat &normals, SurfaceFeatureExtract::SurfaceRegionFeature feature1, SurfaceFeatureExtract::SurfaceRegionFeature feature2,
                                 std::vector<int> &surface1, std::vector<int> &surface2, int distance, int w);
 
     static bool computeOccludedObject(Mat &depthImg, Mat &xyz, Mat &normals,
-                                SurfaceFeatureExtractor::SurfaceFeature feature1, SurfaceFeatureExtractor::SurfaceFeature feature2,
+                                SurfaceFeatureExtract::SurfaceRegionFeature feature1, SurfaceFeatureExtract::SurfaceRegionFeature feature2,
                                 std::vector<int> &surface1, std::vector<int> &surface2, int w, float maxError, int ransacPasses, float distanceTolerance, float outlierTolerance);
 
-    static float computeConvexity(Mat &normals, SurfaceFeatureExtractor::SurfaceFeature feature, std::vector<int> &surface, int w);
+    static float computeConvexity(Mat &normals, SurfaceFeatureExtract::SurfaceRegionFeature feature, std::vector<int> &surface, int w);
 
-    static std::pair<Point,Point> computeExtremalBins(SurfaceFeatureExtractor::SurfaceFeature feature);
+    static std::pair<Point,Point> computeExtremalBins(SurfaceFeatureExtract::SurfaceRegionFeature feature);
 
     static std::pair<Point,Point> backproject(Mat &normals,
                     std::pair<Point,Point> &histo1ExtremalBins, std::vector<int> &surface1, int w);

@@ -1,41 +1,41 @@
-#include "CutfreeAdjacencyFeatureExtractor.h"
+#include "CutfreeAdjacencyFeature.h"
 
-struct CutfreeAdjacencyFeatureExtractor::Data {
+struct CutfreeAdjacencyFeature::Data {
   Data(Mode mode) {
     if(mode==BEST || mode==GPU){
-      ransac=new PlanarRansacEstimator(PlanarRansacEstimator::GPU);
+      ransac=new PlanarRansac(PlanarRansac::GPU);
     }else{
-      ransac=new PlanarRansacEstimator(PlanarRansacEstimator::CPU);
+      ransac=new PlanarRansac(PlanarRansac::CPU);
     }
   }
 
   ~Data() {
   }
 
-  PlanarRansacEstimator* ransac;
+  PlanarRansac* ransac;
 };
 
 
-CutfreeAdjacencyFeatureExtractor::CutfreeAdjacencyFeatureExtractor(Mode mode) :
+CutfreeAdjacencyFeature::CutfreeAdjacencyFeature(Mode mode) :
   m_data(new Data(mode)) {
 }
 
 
-CutfreeAdjacencyFeatureExtractor::~CutfreeAdjacencyFeatureExtractor() {
+CutfreeAdjacencyFeature::~CutfreeAdjacencyFeature() {
   delete m_data;
 }
 
 
-Mat CutfreeAdjacencyFeatureExtractor::apply(Mat &xyzh,
+Mat CutfreeAdjacencyFeature::apply(Mat &xyzh,
             std::vector<std::vector<int> > &surfaces, Mat &testMatrix, float euclideanDistance,
             int passes, int tolerance, Mat labelImage){
   Mat cutfreeMatrix(testMatrix);
   for(unsigned int x=0; x<cutfreeMatrix.size().height; x++){
     cutfreeMatrix.at<int>(x,x)=false;
   }
-  std::vector<std::vector<PlanarRansacEstimator::Result>> result = m_data->ransac->apply(xyzh, surfaces,
+  std::vector<std::vector<PlanarRansac::RansacResult>> result = m_data->ransac->apply(xyzh, surfaces,
                 cutfreeMatrix, euclideanDistance, passes, tolerance,
-                PlanarRansacEstimator::ON_ONE_SIDE, labelImage);
+                PlanarRansac::ON_ONE_SIDE, labelImage);
 
   for(unsigned int x=0; x<static_cast<int>(result.size()); x++){
     for(unsigned int y=0; y<static_cast<int>(result[0].size()); y++){
@@ -49,10 +49,10 @@ Mat CutfreeAdjacencyFeatureExtractor::apply(Mat &xyzh,
 }
 
 
-Mat CutfreeAdjacencyFeatureExtractor::apply(Mat &xyzh,
+Mat CutfreeAdjacencyFeature::apply(Mat &xyzh,
             std::vector<std::vector<int> > &surfaces, Mat &testMatrix, float euclideanDistance,
             int passes, int tolerance, Mat labelImage,
-            std::vector<SurfaceFeatureExtractor::SurfaceFeature> feature, float minAngle){
+            std::vector<SurfaceFeatureExtract::SurfaceRegionFeature> feature, float minAngle){
   Mat cutfreeMatrix(testMatrix);
   for(unsigned int x=0; x<cutfreeMatrix.size().height; x++){
     cutfreeMatrix.at<int>(x,x)=false;
@@ -69,9 +69,9 @@ Mat CutfreeAdjacencyFeatureExtractor::apply(Mat &xyzh,
       }
     }
   }
-  std::vector<std::vector<PlanarRansacEstimator::Result>> result = m_data->ransac->apply(xyzh, surfaces,
+  std::vector<std::vector<PlanarRansac::RansacResult>> result = m_data->ransac->apply(xyzh, surfaces,
                 cutfreeMatrix, euclideanDistance, passes, tolerance,
-                PlanarRansacEstimator::ON_ONE_SIDE, labelImage);
+                PlanarRansac::ON_ONE_SIDE, labelImage);
 
   for(unsigned int x=0; x<static_cast<int>(result.size()); x++){
     for(unsigned int y=0; y<static_cast<int>(result[0].size()); y++){

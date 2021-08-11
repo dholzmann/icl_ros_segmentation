@@ -1,12 +1,12 @@
 #pragma once
 #include <opencv2/opencv.hpp>
 #include <opencv2/core/mat.hpp>
-#include "PlanarRansacEstimator.h"
-#include "RegionGrower.h"
+#include "PlanarRansac.h"
+#include "RegionGrowing.h"
 /// class for remaining points feature.
 /** This class implements the remaining points feature for feature-graph based segmentation.*/
 using namespace cv;
-class RemainingPointsFeatureExtractor{
+class RemainingPointsFeature{
 
   public:
 

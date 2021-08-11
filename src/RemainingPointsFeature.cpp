@@ -1,13 +1,13 @@
-#include "RemainingPointsFeatureExtractor.h"
+#include "RemainingPointsFeature.h"
 
-void RemainingPointsFeatureExtractor::apply(Mat &xyz, const Mat &depthImage, Mat &labelImage, Mat &maskImage,
+void RemainingPointsFeature::apply(Mat &xyz, const Mat &depthImage, Mat &labelImage, Mat &maskImage,
                       std::vector<std::vector<int> > &surfaces, std::vector<std::vector<int> > &segments, int minSize, float euclideanDistance, int radius, float assignEuclideanDistance, int supportTolerance){
   calculateLocalMinima(depthImage, maskImage, radius);
   apply(xyz, labelImage, maskImage, surfaces, segments, minSize, euclideanDistance, assignEuclideanDistance, supportTolerance);
 }
 
 
-void RemainingPointsFeatureExtractor::apply(Mat &xyz, Mat &labelImage, Mat &maskImage,
+void RemainingPointsFeature::apply(Mat &xyz, Mat &labelImage, Mat &maskImage,
                   std::vector<std::vector<int> > &surfaces, std::vector<std::vector<int> > &segments, int minSize, float euclideanDistance, float assignEuclideanDistance, int supportTolerance){
   int numCluster=surfaces.size();
   clusterRemainingPoints(xyz, surfaces, labelImage, maskImage, minSize, euclideanDistance, numCluster);
@@ -19,14 +19,14 @@ void RemainingPointsFeatureExtractor::apply(Mat &xyz, Mat &labelImage, Mat &mask
 }
 
 
-Mat_<bool> RemainingPointsFeatureExtractor::apply(Mat &xyz, const Mat &depthImage, Mat &labelImage, Mat &maskImage,
+Mat_<bool> RemainingPointsFeature::apply(Mat &xyz, const Mat &depthImage, Mat &labelImage, Mat &maskImage,
                   std::vector<std::vector<int> > &surfaces, int minSize, float euclideanDistance, int radius, float assignEuclideanDistance){
   calculateLocalMinima(depthImage, maskImage, radius);
   return apply(xyz, labelImage, maskImage, surfaces, minSize, euclideanDistance, assignEuclideanDistance);
 }
 
 
-Mat_<bool> RemainingPointsFeatureExtractor::apply(Mat &xyz, Mat &labelImage, Mat &maskImage,
+Mat_<bool> RemainingPointsFeature::apply(Mat &xyz, Mat &labelImage, Mat &maskImage,
                   std::vector<std::vector<int> > &surfaces, int minSize, float euclideanDistance, float assignEuclideanDistance){
   int numCluster=surfaces.size();
   clusterRemainingPoints(xyz, surfaces, labelImage, maskImage, minSize, euclideanDistance, numCluster);
@@ -47,7 +47,7 @@ Mat_<bool> RemainingPointsFeatureExtractor::apply(Mat &xyz, Mat &labelImage, Mat
 }
 
 
-void RemainingPointsFeatureExtractor::calculateLocalMinima(const Mat &depthImage, Mat &maskImage, int radius){
+void RemainingPointsFeature::calculateLocalMinima(const Mat &depthImage, Mat &maskImage, int radius){
   int w=depthImage.size().width;
   int h=depthImage.size().height;
   int ii=radius;
@@ -73,10 +73,10 @@ void RemainingPointsFeatureExtractor::calculateLocalMinima(const Mat &depthImage
 }
 
 
-void RemainingPointsFeatureExtractor::clusterRemainingPoints(Mat &xyz, std::vector<std::vector<int> > &surfaces, Mat &labelImage, Mat &maskImage,
+void RemainingPointsFeature::clusterRemainingPoints(Mat &xyz, std::vector<std::vector<int> > &surfaces, Mat &labelImage, Mat &maskImage,
                                         int minSize, float euclideanDistance, int numCluster){
   //cluster remaining points by euclidean distance
-  RegionGrower rg;
+  RegionGrowing rg;
   const Mat &result = rg.applyFloat4EuclideanDistance(xyz, maskImage, euclideanDistance, minSize, numCluster+1);
   std::vector<std::vector<int> > regions=rg.getRegions();
   surfaces.insert(surfaces.end(), regions.begin(), regions.end());
@@ -92,7 +92,7 @@ void RemainingPointsFeatureExtractor::clusterRemainingPoints(Mat &xyz, std::vect
   }
 }
 
-void RemainingPointsFeatureExtractor::detectNeighbours(Mat &xyz, std::vector<std::vector<int> > &surfaces, Mat &labelImage, std::vector<std::vector<int> > &neighbours,
+void RemainingPointsFeature::detectNeighbours(Mat &xyz, std::vector<std::vector<int> > &surfaces, Mat &labelImage, std::vector<std::vector<int> > &neighbours,
                                   std::vector<std::vector<int> > &neighboursPoints, int numCluster, float assignEuclideanDistance){
   Size s = labelImage.size();
   //determine neighbouring surfaces
@@ -119,7 +119,7 @@ void RemainingPointsFeatureExtractor::detectNeighbours(Mat &xyz, std::vector<std
 }
 
 
-bool RemainingPointsFeatureExtractor::checkNotExist(int zw, std::vector<int> &nb, std::vector<int> &nbPoints){
+bool RemainingPointsFeature::checkNotExist(int zw, std::vector<int> &nb, std::vector<int> &nbPoints){
   if(zw!=0){
     for(unsigned int z=0; z<nb.size(); z++){
       if(nb[z]==zw){
@@ -133,7 +133,7 @@ bool RemainingPointsFeatureExtractor::checkNotExist(int zw, std::vector<int> &nb
 }
 
 
-void RemainingPointsFeatureExtractor::ruleBasedAssignment(Mat &xyz, Mat &labelImage, std::vector<std::vector<int> > &surfaces, std::vector<std::vector<int> > &segments,
+void RemainingPointsFeature::ruleBasedAssignment(Mat &xyz, Mat &labelImage, std::vector<std::vector<int> > &surfaces, std::vector<std::vector<int> > &segments,
                                     std::vector<std::vector<int> > &neighbours, std::vector<std::vector<int> > &neighboursPoints, int numCluster, int supportTolerance){
 
   std::vector<int> assignment = segmentMapping(segments, surfaces.size());
@@ -189,7 +189,7 @@ void RemainingPointsFeatureExtractor::ruleBasedAssignment(Mat &xyz, Mat &labelIm
 }
 
 
-std::vector<int> RemainingPointsFeatureExtractor::segmentMapping(std::vector<std::vector<int> > &segments, int numSurfaces){
+std::vector<int> RemainingPointsFeature::segmentMapping(std::vector<std::vector<int> > &segments, int numSurfaces){
   //mapping for faster calculation
   std::vector<int> assignment (numSurfaces,0);
   for(unsigned int i=0; i<segments.size(); i++){
@@ -201,14 +201,14 @@ std::vector<int> RemainingPointsFeatureExtractor::segmentMapping(std::vector<std
 }
 
 
-int RemainingPointsFeatureExtractor::ransacAssignment(Mat &xyz, std::vector<std::vector<int> > &surfaces, std::vector<int> &nb, int x){
+int RemainingPointsFeature::ransacAssignment(Mat &xyz, std::vector<std::vector<int> > &surfaces, std::vector<int> &nb, int x){
   std::vector<std::vector<Vec4f> > n0;
   std::vector<std::vector<float> > dist;
   for(unsigned int i=0; i<nb.size(); i++){//calculate RANSAC models on neighbours
     std::vector<Vec4f> n00(10);
     std::vector<float> dist0(10);
 
-    PlanarRansacEstimator::calculateRandomModels(xyz, surfaces[nb[i]], n00, dist0, 10);
+    PlanarRansac::calculateRandomModels(xyz, surfaces[nb[i]], n00, dist0, 10);
     n0.push_back(n00);
     dist.push_back(dist0);
   }
@@ -237,7 +237,7 @@ int RemainingPointsFeatureExtractor::ransacAssignment(Mat &xyz, std::vector<std:
   return bestNeighbourID;
 }
 
-bool RemainingPointsFeatureExtractor::checkSupport(Mat &labelImage, std::vector<int> &surface, int neighbourID, int supportTolerance){
+bool RemainingPointsFeature::checkSupport(Mat &labelImage, std::vector<int> &surface, int neighbourID, int supportTolerance){
   int count=0;
   Size s = labelImage.size();
   for(unsigned int y=0; y<surface.size(); y++){

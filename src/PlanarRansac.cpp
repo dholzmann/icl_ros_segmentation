@@ -1,6 +1,6 @@
-#include "PlanarRansacEstimator.h"
+#include "PlanarRansac.h"
 
-struct PlanarRansacEstimator::Data {
+struct PlanarRansac::Data {
   Data(Mode mode) {
     clReady = false;
 
@@ -21,21 +21,17 @@ struct PlanarRansacEstimator::Data {
 };
 
 
-PlanarRansacEstimator::PlanarRansacEstimator(Mode mode) :
+PlanarRansac::PlanarRansac(Mode mode) :
   m_data(new Data(mode)) {
-
-  if(m_data->useCL==true){
-    initOpenCL();
-  }
 }
 
 
-PlanarRansacEstimator::~PlanarRansacEstimator() {
+PlanarRansac::~PlanarRansac() {
   delete m_data;
 }
 
 
-PlanarRansacEstimator::Result PlanarRansacEstimator::apply(Mat &xyzh,
+PlanarRansac::RansacResult PlanarRansac::apply(Mat &xyzh,
             std::vector<int> &srcIDs, std::vector<int> &dstIDs, float threshold, int passes,
             int subset, int tolerance, int optimization){
 
@@ -51,7 +47,7 @@ PlanarRansacEstimator::Result PlanarRansacEstimator::apply(Mat &xyzh,
 }
 
 
-PlanarRansacEstimator::Result PlanarRansacEstimator::apply(std::vector<Vec4f> &srcPoints,
+PlanarRansac::RansacResult PlanarRansac::apply(std::vector<Vec4f> &srcPoints,
             std::vector<Vec4f> &dstPoints, float threshold, int passes, int subset, int tolerance, int optimization){
 
   int numPoints=dstPoints.size();
@@ -63,17 +59,13 @@ PlanarRansacEstimator::Result PlanarRansacEstimator::apply(std::vector<Vec4f> &s
 
   calculateRandomModels(srcPoints, n0, dist, passes);
 
-  if(m_data->useCL==true && m_data->clReady==true){
-    calculateSingleCL(dstPoints, threshold, passes, subset, n0, dist, cAbove, cBelow, cOn);
-  }else{
-    calculateSingleCPU(dstPoints, threshold, passes, subset, n0, dist, cAbove, cBelow, cOn);
-  }
+  calculateSingleCPU(dstPoints, threshold, passes, subset, n0, dist, cAbove, cBelow, cOn);
 
   return createResult(n0, dist, cAbove, cBelow, cOn, threshold, passes, tolerance, optimization, numPoints);
 }
 
 
-std::vector<std::vector<PlanarRansacEstimator::Result>> PlanarRansacEstimator::apply(Mat &xyzh,
+std::vector<std::vector<PlanarRansac::RansacResult>> PlanarRansac::apply(Mat &xyzh,
             std::vector<std::vector<int> > &pointIDs, Mat &testMatrix, float threshold,
             int passes, int tolerance, int optimization, Mat labelImage){
 
@@ -123,8 +115,8 @@ std::vector<std::vector<PlanarRansacEstimator::Result>> PlanarRansacEstimator::a
 }
 
 
-void PlanarRansacEstimator::relabel(Mat &xyzh, Mat &newMask, Mat &oldLabel,
-                            Mat &newLabel, int desiredID, int srcID, float threshold, Result &result){
+void PlanarRansac::relabel(Mat &xyzh, Mat &newMask, Mat &oldLabel,
+                            Mat &newLabel, int desiredID, int srcID, float threshold, RansacResult &result){
 
   Size size = newMask.size();
   int w = size.width;
@@ -137,7 +129,7 @@ void PlanarRansacEstimator::relabel(Mat &xyzh, Mat &newMask, Mat &oldLabel,
   //}
 }
 
-void PlanarRansacEstimator::calculateMultiCPU(Mat &xyzh, std::vector<std::vector<int> > &pointIDs, Mat &testMatrix,
+void PlanarRansac::calculateMultiCPU(Mat &xyzh, std::vector<std::vector<int> > &pointIDs, Mat &testMatrix,
                 float threshold, int passes, std::vector<std::vector<Vec4f> > &n0Pre, std::vector<std::vector<float> > &distPre, std::vector<int> &cAbove,
                 std::vector<int> &cBelow, std::vector<int> &cOn, std::vector<int> &adjs, std::vector<int> &start, std::vector<int> &end){
   for(size_t i=0; i<testMatrix.size().height; i++){
@@ -161,7 +153,7 @@ void PlanarRansacEstimator::calculateMultiCPU(Mat &xyzh, std::vector<std::vector
   }
 }
 
-void PlanarRansacEstimator::calculateSingleCPU(std::vector<Vec4f> &dstPoints, float threshold, int passes, int subset,
+void PlanarRansac::calculateSingleCPU(std::vector<Vec4f> &dstPoints, float threshold, int passes, int subset,
             std::vector<Vec4f> &n0, std::vector<float> &dist, std::vector<int> &cAbove, std::vector<int> &cBelow, std::vector<int> &cOn){
   for(int p=0; p<passes; p++){
     for(unsigned int q=0; q<dstPoints.size(); q+=subset){
@@ -179,7 +171,7 @@ void PlanarRansacEstimator::calculateSingleCPU(std::vector<Vec4f> &dstPoints, fl
   }
 }
 
-void PlanarRansacEstimator::calculateRandomModels(std::vector<Vec4f> &srcPoints, std::vector<Vec4f> &n0, std::vector<float> &dist, int passes){
+void PlanarRansac::calculateRandomModels(std::vector<Vec4f> &srcPoints, std::vector<Vec4f> &n0, std::vector<float> &dist, int passes){
   for(int i=0; i<passes; i++){
     Vec4f p0i=srcPoints.at(rand()%srcPoints.size());
     Vec4f p1i=srcPoints.at(rand()%srcPoints.size());
@@ -193,7 +185,7 @@ void PlanarRansacEstimator::calculateRandomModels(std::vector<Vec4f> &srcPoints,
 }
 
 
-void PlanarRansacEstimator::calculateRandomModels(Mat &xyzh, std::vector<int> &srcPoints, std::vector<Vec4f> &n0, std::vector<float> &dist, int passes){
+void PlanarRansac::calculateRandomModels(Mat &xyzh, std::vector<int> &srcPoints, std::vector<Vec4f> &n0, std::vector<float> &dist, int passes){
   for(int i=0; i<passes; i++){
     int p0i=srcPoints.at(rand()%srcPoints.size());
     int p1i=srcPoints.at(rand()%srcPoints.size());
@@ -207,7 +199,7 @@ void PlanarRansacEstimator::calculateRandomModels(Mat &xyzh, std::vector<int> &s
 }
 
 
-PlanarRansacEstimator::Result PlanarRansacEstimator::createResult(std::vector<Vec4f> &n0, std::vector<float> &dist, std::vector<int> &cAbove,
+PlanarRansac::RansacResult PlanarRansac::createResult(std::vector<Vec4f> &n0, std::vector<float> &dist, std::vector<int> &cAbove,
                 std::vector<int> &cBelow, std::vector<int> &cOn, float threshold, int passes, int tolerance, int optimization, int numPoints){
   int maxMatch=0;
   int maxMatchID=0;
@@ -238,7 +230,7 @@ PlanarRansacEstimator::Result PlanarRansacEstimator::createResult(std::vector<Ve
     }
   }
 
-  Result result;
+  RansacResult result;
   result.numPoints=numPoints;
   result.countOn=cOn[maxMatchID];
   result.countAbove=cAbove[maxMatchID];
@@ -253,12 +245,12 @@ PlanarRansacEstimator::Result PlanarRansacEstimator::createResult(std::vector<Ve
 }
 
 
-std::vector<std::vector<PlanarRansacEstimator::Result>> PlanarRansacEstimator::createResultMatrix(Mat &testMatrix, std::vector<int> &start,
+std::vector<std::vector<PlanarRansac::RansacResult>> PlanarRansac::createResultMatrix(Mat &testMatrix, std::vector<int> &start,
                 std::vector<int> &end, std::vector<int> &adjs, std::vector<int> &cAbove, std::vector<int> &cBelow, std::vector<int> &cOn,
                 std::vector<std::vector<int> > &pointIDs, std::vector<std::vector<Vec4f> > &n0Pre, std::vector<std::vector<float> > &distPre,
                 float threshold, int passes, int tolerance, int optimization){
-  Result init;
-  std::vector<std::vector<PlanarRansacEstimator::Result>> result(testMatrix.size().height, std::vector<Result>(testMatrix.size().width));
+  RansacResult init;
+  std::vector<std::vector<PlanarRansac::RansacResult>> result(testMatrix.size().height, std::vector<RansacResult>(testMatrix.size().width));
 
   for(size_t i=0; i<testMatrix.size().height; i++){
     for(int j=start[i]; j<end[i]; j++){
@@ -272,7 +264,7 @@ std::vector<std::vector<PlanarRansacEstimator::Result>> PlanarRansacEstimator::c
         on[l]=cOn[j*passes+l];
       }
       int numPoints = pointIDs.at(k).size();
-      Result res = createResult(n0Pre[i], distPre[i], above, below, on, threshold, passes, tolerance, optimization, numPoints);
+      RansacResult res = createResult(n0Pre[i], distPre[i], above, below, on, threshold, passes, tolerance, optimization, numPoints);
       result[i][k]=res;
     }
   }
@@ -281,7 +273,7 @@ std::vector<std::vector<PlanarRansacEstimator::Result>> PlanarRansacEstimator::c
 }
 
 
-void PlanarRansacEstimator::calculateModel(Vec4f &fa, Vec4f &fb, Vec4f &rPoint, Vec4f &n0, float &dist){
+void PlanarRansac::calculateModel(Vec4f &fa, Vec4f &fb, Vec4f &rPoint, Vec4f &n0, float &dist){
   Vec4f n1;
   n1[0]=fa[1]*fb[2]-fa[2]*fb[1];
   n1[1]=fa[2]*fb[0]-fa[0]*fb[2];
@@ -292,8 +284,8 @@ void PlanarRansacEstimator::calculateModel(Vec4f &fa, Vec4f &fb, Vec4f &rPoint, 
   dist = rPoint[0]*n0[0]+rPoint[1]*n0[1]+ rPoint[2]*n0[2];
 }
 
-void PlanarRansacEstimator::relabelCPU(Mat &xyzh, Mat &newMask, Mat &oldLabel, Mat &newLabel,
-                  int desiredID, int srcID, float threshold, Result &result, int w, int h){
+void PlanarRansac::relabelCPU(Mat &xyzh, Mat &newMask, Mat &oldLabel, Mat &newLabel,
+                  int desiredID, int srcID, float threshold, RansacResult &result, int w, int h){
   for(int y=0; y<h; y++){
     for(int x=0; x<w; x++){
       int i=x+y*w;

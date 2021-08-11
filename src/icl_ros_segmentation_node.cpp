@@ -119,14 +119,14 @@ struct BBoxes : public geom::SceneObject{
 BBoxes *bboxes;
 
 struct AdaptedSceneMouseHandler : public MouseHandler{
-  Mutex mutex;
+  icl::utils::Mutex mutex;
   MouseHandler *h;
 
   AdaptedSceneMouseHandler(MouseHandler *h):h(h){
   }
 
   void process(const MouseEvent &e){
-    Mutex::Locker l(mutex);
+    icl::utils::Mutex::Locker l(mutex);
     h->process(e);
   }
 
@@ -190,9 +190,9 @@ void getPrimitivesFromROS(const visualization_msgs::MarkerArray::ConstPtr& marke
 				//how to handle different types?
 				break;
 		}
-		Vec primitivePosition(markerarray->markers[i].pose.position.x*1000.0, markerarray->markers[i].pose.position.y*1000.0, markerarray->markers[i].pose.position.z*1000.0, 1);
+		icl::geom::Vec primitivePosition(markerarray->markers[i].pose.position.x*1000.0, markerarray->markers[i].pose.position.y*1000.0, markerarray->markers[i].pose.position.z*1000.0, 1);
 		Primitive3DFilter::Quaternion primitiveOrientation(Vec3(markerarray->markers[i].pose.orientation.x, markerarray->markers[i].pose.orientation.y, markerarray->markers[i].pose.orientation.z), markerarray->markers[i].pose.orientation.w);
-		Vec primitiveScale(markerarray->markers[i].scale.x*1000.0, markerarray->markers[i].scale.y*1000.0, markerarray->markers[i].scale.z*1000.0, 1);
+		icl::geom::Vec primitiveScale(markerarray->markers[i].scale.x*1000.0, markerarray->markers[i].scale.y*1000.0, markerarray->markers[i].scale.z*1000.0, 1);
 		Primitive3DFilter::Primitive3D primitive(primitiveType, primitivePosition, primitiveOrientation, primitiveScale, 0, markerarray->markers[i].text);
 		rosPrimitives.push_back(primitive);
 	}
@@ -480,23 +480,23 @@ void run(){
     bboxes->update(clusters);
     scene.unlock();
    
-    std::vector<std::pair<utils::Point,utils::Point> > bboxes2DColor(clusters.size());
+    std::vector<std::pair<icl::utils::Point,icl::utils::Point> > bboxes2DColor(clusters.size());
     for(int i=0; i<clusters.size(); i++){
       PointCloudSegment::AABB &aabb = clusters[i]->aabb;         
-      std::vector<Vec> wp(8);
-      wp[0] = Vec(aabb.min[0],aabb.min[1],aabb.min[2],1);
-      wp[1] = Vec(aabb.min[0],aabb.min[1],aabb.max[2],1);
-      wp[2] = Vec(aabb.min[0],aabb.max[1],aabb.min[2],1);
-      wp[3] = Vec(aabb.min[0],aabb.max[1],aabb.max[2],1);
-      wp[4] = Vec(aabb.max[0],aabb.min[1],aabb.min[2],1);
-      wp[5] = Vec(aabb.max[0],aabb.min[1],aabb.max[2],1);
-      wp[6] = Vec(aabb.max[0],aabb.max[1],aabb.min[2],1);
-      wp[7] = Vec(aabb.max[0],aabb.max[1],aabb.max[2],1);
-      std::vector<utils::Point32f> cp = kinect->colorCam.project(wp);
+      std::vector<icl::geom::Vec> wp(8);
+      wp[0] = icl::geom::Vec(aabb.min[0],aabb.min[1],aabb.min[2],1);
+      wp[1] = icl::geom::Vec(aabb.min[0],aabb.min[1],aabb.max[2],1);
+      wp[2] = icl::geom::Vec(aabb.min[0],aabb.max[1],aabb.min[2],1);
+      wp[3] = icl::geom::Vec(aabb.min[0],aabb.max[1],aabb.max[2],1);
+      wp[4] = icl::geom::Vec(aabb.max[0],aabb.min[1],aabb.min[2],1);
+      wp[5] = icl::geom::Vec(aabb.max[0],aabb.min[1],aabb.max[2],1);
+      wp[6] = icl::geom::Vec(aabb.max[0],aabb.max[1],aabb.min[2],1);
+      wp[7] = icl::geom::Vec(aabb.max[0],aabb.max[1],aabb.max[2],1);
+      std::vector<icl::utils::Point32f> cp = kinect->colorCam.project(wp);
       
-      std::pair<utils::Point,utils::Point> colorBBox;
-      colorBBox.first=utils::Point(1000000,1000000);
-      colorBBox.second=utils::Point(-1000000,-1000000);
+      std::pair<icl::utils::Point,icl::utils::Point> colorBBox;
+      colorBBox.first=icl::utils::Point(1000000,1000000);
+      colorBBox.second=icl::utils::Point(-1000000,-1000000);
       for(unsigned int j=0; j<cp.size(); j++){
         if(cp[j].x>=0 && cp[j].y>=0){//point is in visible space
           if(cp[j].x<colorBBox.first.x) colorBBox.first.x=cp[j].x;

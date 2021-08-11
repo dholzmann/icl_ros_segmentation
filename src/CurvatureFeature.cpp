@@ -1,7 +1,7 @@
-#include "CurvatureFeatureExtractor.h"
+#include "CurvatureFeature.h"
 
-Mat_<bool> CurvatureFeatureExtractor::apply(Mat &depthImg, Mat &xyz, Mat_<bool> &initialMatrix,
-                      std::vector<SurfaceFeatureExtractor::SurfaceFeature> features,
+Mat_<bool> CurvatureFeature::apply(Mat &depthImg, Mat &xyz, Mat_<bool> &initialMatrix,
+                      std::vector<SurfaceFeatureExtract::SurfaceRegionFeature> features,
                       std::vector<std::vector<int> > &surfaces, Mat &normals, bool useOpenObjects, bool useOccludedObjects,
                       float histogramSimilarity, int distance, float maxError, int ransacPasses, float distanceTolerance, float outlierTolerance){
   int w = depthImg.size().width;
@@ -11,8 +11,8 @@ Mat_<bool> CurvatureFeatureExtractor::apply(Mat &depthImg, Mat &xyz, Mat_<bool> 
     for(size_t j=0; j<initialMatrix.rows; j++){
       //only test pairs of non-adjacent curved surfaces
       if(initialMatrix(i,j)==true ||
-          (features[i].curvatureFactor!=SurfaceFeatureExtractor::CURVED_1D && features[i].curvatureFactor!=SurfaceFeatureExtractor::CURVED_2D) ||
-          (features[j].curvatureFactor!=SurfaceFeatureExtractor::CURVED_1D && features[j].curvatureFactor!=SurfaceFeatureExtractor::CURVED_2D) ){
+          (features[i].curvatureFactor!=SurfaceFeatureExtract::CURVED_1D && features[i].curvatureFactor!=SurfaceFeatureExtract::CURVED_2D) ||
+          (features[j].curvatureFactor!=SurfaceFeatureExtract::CURVED_1D && features[j].curvatureFactor!=SurfaceFeatureExtract::CURVED_2D) ){
         curvature(i,j)=false;
       }
     }
@@ -23,7 +23,7 @@ Mat_<bool> CurvatureFeatureExtractor::apply(Mat &depthImg, Mat &xyz, Mat_<bool> 
         bool proceed=true;
 
         //joint criterion: similar surface shape and orientation (normal histogram matching)
-        float similarityScore = SurfaceFeatureExtractor::matchNormalHistograms(features[i].normalHistogram, features[j].normalHistogram);
+        float similarityScore = SurfaceFeatureExtract::matchNormalHistograms(features[i].normalHistogram, features[j].normalHistogram);
         if(similarityScore<histogramSimilarity){
           proceed=false;
         }
@@ -53,7 +53,7 @@ Mat_<bool> CurvatureFeatureExtractor::apply(Mat &depthImg, Mat &xyz, Mat_<bool> 
 }
 
 
-bool CurvatureFeatureExtractor::computeOpenObject(Mat &normals, SurfaceFeatureExtractor::SurfaceFeature feature1, SurfaceFeatureExtractor::SurfaceFeature feature2,
+bool CurvatureFeature::computeOpenObject(Mat &normals, SurfaceFeatureExtract::SurfaceRegionFeature feature1, SurfaceFeatureExtract::SurfaceRegionFeature feature2,
                                 std::vector<int> &surface1, std::vector<int> &surface2, int distance, int w){
   //1. neighbouring in image space
   std::pair<Point,Point> bBox1 = feature1.boundingBox2D; //min, max
@@ -82,8 +82,8 @@ bool CurvatureFeatureExtractor::computeOpenObject(Mat &normals, SurfaceFeatureEx
 }
 
 
-bool CurvatureFeatureExtractor::computeOccludedObject(Mat &depthImg, Mat &xyz, Mat &normals,
-                                SurfaceFeatureExtractor::SurfaceFeature feature1, SurfaceFeatureExtractor::SurfaceFeature feature2,
+bool CurvatureFeature::computeOccludedObject(Mat &depthImg, Mat &xyz, Mat &normals,
+                                SurfaceFeatureExtract::SurfaceRegionFeature feature1, SurfaceFeatureExtract::SurfaceRegionFeature feature2,
                                 std::vector<int> &surface1, std::vector<int> &surface2, int w, float maxError, int ransacPasses, float distanceTolerance, float outlierTolerance){
   //select most populated bin (same bin for both histograms)
   float maxBinValue=0;
@@ -132,13 +132,13 @@ bool CurvatureFeatureExtractor::computeOccludedObject(Mat &depthImg, Mat &xyz, M
 
   //occlusion check
   if(minError<maxError){
-    return SegmenterUtils::occlusionCheck(depthImg, pointPairImg.first, pointPairImg.second, distanceTolerance, outlierTolerance);
+    return SegmenterHelper::occlusionCheck(depthImg, pointPairImg.first, pointPairImg.second, distanceTolerance, outlierTolerance);
   }
   return false;
 }
 
 
-float CurvatureFeatureExtractor::computeConvexity(Mat &normals, SurfaceFeatureExtractor::SurfaceFeature feature, std::vector<int> &surface, int w){
+float CurvatureFeature::computeConvexity(Mat &normals, SurfaceFeatureExtract::SurfaceRegionFeature feature, std::vector<int> &surface, int w){
   //select extremal bins in histogram
   std::pair<Point,Point> histoExtremalBins = computeExtremalBins(feature);
 
@@ -152,7 +152,7 @@ float CurvatureFeatureExtractor::computeConvexity(Mat &normals, SurfaceFeatureEx
 }
 
 
-std::pair<Point,Point> CurvatureFeatureExtractor::computeExtremalBins(SurfaceFeatureExtractor::SurfaceFeature feature){
+std::pair<Point,Point> CurvatureFeature::computeExtremalBins(SurfaceFeatureExtract::SurfaceRegionFeature feature){
   //normal histogram bounding box
   std::pair<Point,Point> histoBBox;
   histoBBox.first.x=1000;
@@ -202,7 +202,7 @@ std::pair<Point,Point> CurvatureFeatureExtractor::computeExtremalBins(SurfaceFea
 }
 
 
-std::pair<Point,Point> CurvatureFeatureExtractor::backproject(Mat &normals,
+std::pair<Point,Point> CurvatureFeature::backproject(Mat &normals,
                     std::pair<Point,Point> &histoExtremalBins, std::vector<int> &surface, int w){
   std::vector<int> imgMinPoints=backprojectPointIDs(normals, histoExtremalBins.first, surface);
   std::vector<int> imgMaxPoints=backprojectPointIDs(normals, histoExtremalBins.second, surface);
@@ -214,7 +214,7 @@ std::pair<Point,Point> CurvatureFeatureExtractor::backproject(Mat &normals,
 }
 
 
-std::vector<int> CurvatureFeatureExtractor::backprojectPointIDs(Mat &normals, Point bin, std::vector<int> &surface){
+std::vector<int> CurvatureFeature::backprojectPointIDs(Mat &normals, Point bin, std::vector<int> &surface){
   std::vector<int> pointIDs;
   for(unsigned int i=0; i<surface.size(); i++){
     if(round(normals.at<Vec4f>(surface[i])[0]*5.0+5.0)==bin.x && round(normals.at<Vec4f>(surface[i])[1]*5.0+5.0)==bin.y){
@@ -225,7 +225,7 @@ std::vector<int> CurvatureFeatureExtractor::backprojectPointIDs(Mat &normals, Po
 }
 
 
-Point CurvatureFeatureExtractor::computeMean(std::vector<int> &imgIDs, int w){
+Point CurvatureFeature::computeMean(std::vector<int> &imgIDs, int w){
   std::vector<Point> points = createPointsFromIDs(imgIDs, w);
   Point imgMean(0,0);
 
@@ -239,7 +239,7 @@ Point CurvatureFeatureExtractor::computeMean(std::vector<int> &imgIDs, int w){
 }
 
 
-std::vector<Point> CurvatureFeatureExtractor::createPointsFromIDs(std::vector<int> &imgIDs, int w){
+std::vector<Point> CurvatureFeature::createPointsFromIDs(std::vector<int> &imgIDs, int w){
   std::vector<Point> points(imgIDs.size());
   for(unsigned int i=0; i<imgIDs.size(); i++){
     int id = imgIDs[i];
@@ -251,7 +251,7 @@ std::vector<Point> CurvatureFeatureExtractor::createPointsFromIDs(std::vector<in
 }
 
 
-std::vector<Vec3f> CurvatureFeatureExtractor::createPointsFromIDs(Mat &xyz, std::vector<int> &imgIDs){
+std::vector<Vec3f> CurvatureFeature::createPointsFromIDs(Mat &xyz, std::vector<int> &imgIDs){
   std::vector<Vec3f> points(imgIDs.size());
   for(unsigned int i=0; i<imgIDs.size(); i++){
     points[i]=xyz.at<Vec3f>(imgIDs[i]);
@@ -260,7 +260,7 @@ std::vector<Vec3f> CurvatureFeatureExtractor::createPointsFromIDs(Mat &xyz, std:
 }
 
 
-float CurvatureFeatureExtractor::computeConvexity(std::pair<Point,Point> histoExtremalBins, std::pair<Point,Point> imgBackproject){
+float CurvatureFeature::computeConvexity(std::pair<Point,Point> histoExtremalBins, std::pair<Point,Point> imgBackproject){
   Point histoVec;
   Point imgVec;
   histoVec.x=histoExtremalBins.second.x-histoExtremalBins.first.x;
@@ -274,13 +274,13 @@ float CurvatureFeatureExtractor::computeConvexity(std::pair<Point,Point> histoEx
 }
 
 
-float CurvatureFeatureExtractor::linePointDistance(std::pair<Vec3f,Vec3f> line, Vec3f point){
+float CurvatureFeature::linePointDistance(std::pair<Vec3f,Vec3f> line, Vec3f point){
   float d = norm(Point3f(point-line.first).cross(Point3f(point-line.second)))/norm(line.second-line.first);
   return d;
 }
 
 
-Point CurvatureFeatureExtractor::idToPoint(int id, int w){
+Point CurvatureFeature::idToPoint(int id, int w){
   int y = (int)floor((float)id/(float)w);
   int x = id-y*w;
   return Point(x,y);

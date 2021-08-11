@@ -7,7 +7,7 @@
 /** The PlanarRansacEstimator class does not minimize the error but simply counts the points with a distance smaller a given threshold.
     The smaller the threshold the preciser the model. Additionally, it is possible to assign all points on the plane to the initial surface.*/
 using namespace cv;
-class PlanarRansacEstimator{
+class PlanarRansac{
 
   public:
     enum Mode {BEST, GPU, CPU};
@@ -15,11 +15,11 @@ class PlanarRansacEstimator{
     /// Constructor
     /** Constructs an object of this class.
         @param mode the selected mode: CPU, GPU or BEST (uses GPU if available)*/
-    PlanarRansacEstimator(Mode mode=BEST);
+    PlanarRansac(Mode mode=BEST);
 
 
     /// Destructor
-    ~PlanarRansacEstimator();
+    ~PlanarRansac();
 
 
     typedef struct{
@@ -34,7 +34,7 @@ class PlanarRansacEstimator{
       int acc;//number of accepted passes for ON_ONE_SIDE (result smaller tolerance)
       int nacc;//number of rejected passes for ON_ONE_SIDE (result bigger tolerance)
       //int maxID;//for assignment of points (all with this id + on plane)
-    }Result;
+    }RansacResult;
 
 
     enum OptimizationCriterion {
@@ -52,9 +52,9 @@ class PlanarRansacEstimator{
         @param subset the subset of points for matching (2 means every second point)
         @param tolerance number of points allowed not to be on one single side of the object for ON_ONE_SIDE
         @param optimization the optimization criterion (ON_ONE_SIDE e.g. for cutfree adjacency test or MAX_ON e.g. for best fitting plane)
-        @return the Result struct.
+        @return the RansacResult struct.
     */
-    Result apply(Mat &xyzh, std::vector<int> &srcIDs, std::vector<int> &dstIDs,
+    RansacResult apply(Mat &xyzh, std::vector<int> &srcIDs, std::vector<int> &dstIDs,
                 float threshold, int passes, int subset, int tolerance, int optimization);
 
 
@@ -67,9 +67,9 @@ class PlanarRansacEstimator{
         @param subset the subset of points for matching (2 means every second point)
         @param tolerance number of points allowed not to be on one single side of the object for ON_ONE_SIDE
         @param optimization the optimization criterion (ON_ONE_SIDE e.g. for cutfree adjacency test or MAX_ON e.g. for best fitting plane)
-        @return the Result struct.
+        @return the RansacResult struct.
     */
-    Result apply(std::vector<Vec4f> &srcPoints, std::vector<Vec4f> &dstPoints, float threshold,
+    RansacResult apply(std::vector<Vec4f> &srcPoints, std::vector<Vec4f> &dstPoints, float threshold,
                 int passes, int subset, int tolerance, int optimization);
 
 
@@ -82,9 +82,9 @@ class PlanarRansacEstimator{
         @param tolerance number of points allowed not to be on one single side of the object for ON_ONE_SIDE
         @param optimization the optimization criterion (ON_ONE_SIDE e.g. for cutfree adjacency test or MAX_ON e.g. for best fitting plane)
         @param labelImage the labelImage with the point label
-        @return matrix of Result structs.
+        @return matrix of RansacResult structs.
     */
-    std::vector<std::vector<Result>> apply(Mat &xyzh, std::vector<std::vector<int> > &pointIDs,
+    std::vector<std::vector<RansacResult>> apply(Mat &xyzh, std::vector<std::vector<int> > &pointIDs,
                 Mat &testMatrix, float threshold, int passes, int tolerance, int optimization, Mat labelImage);
 
 
@@ -99,7 +99,7 @@ class PlanarRansacEstimator{
         @param result the result struct returned by apply (contains the model and the original surface ID)
     */
     void relabel(Mat &xyzh, Mat &newMask, Mat &oldLabel, Mat &newLabel,
-                  int desiredID, int srcID, float threshold, Result &result);
+                  int desiredID, int srcID, float threshold, RansacResult &result);
 
 
     /// Creates random models (n and distance) for RANSAC
@@ -125,36 +125,24 @@ class PlanarRansacEstimator{
     struct Data;  //!< internal data type
     Data *m_data; //!< internal data pointer
 
-    void calculateMultiCL(Mat &xyzh, Mat labelImage, Mat &testMatrix, float threshold, int passes,
-                std::vector<Vec4f> &n0, std::vector<float> &dist, std::vector<int> &cAbove, std::vector<int> &cBelow, std::vector<int> &cOn,
-                std::vector<int> &adjs, std::vector<int> &start, std::vector<int> &end);
-
     void calculateMultiCPU(Mat &xyzh, std::vector<std::vector<int> > &pointIDs, Mat &testMatrix,
                 float threshold, int passes, std::vector<std::vector<Vec4f> > &n0Pre, std::vector<std::vector<float> > &distPre, std::vector<int> &cAbove,
                 std::vector<int> &cBelow, std::vector<int> &cOn, std::vector<int> &adjs, std::vector<int> &start, std::vector<int> &end);
 
-    void calculateSingleCL(std::vector<Vec4f> &dstPoints, float threshold, int passes, int subset,
-                std::vector<Vec4f> &n0, std::vector<float> &dist, std::vector<int> &cAbove, std::vector<int> &cBelow, std::vector<int> &cOn);
-
     void calculateSingleCPU(std::vector<Vec4f> &dstPoints, float threshold, int passes, int subset,
                 std::vector<Vec4f> &n0, std::vector<float> &dist, std::vector<int> &cAbove, std::vector<int> &cBelow, std::vector<int> &cOn);
 
-    void initOpenCL();
-
-    Result createResult(std::vector<Vec4f> &n0, std::vector<float> &dist, std::vector<int> &cAbove, std::vector<int> &cBelow, std::vector<int> &cOn,
+    RansacResult createResult(std::vector<Vec4f> &n0, std::vector<float> &dist, std::vector<int> &cAbove, std::vector<int> &cBelow, std::vector<int> &cOn,
             float threshold, int passes, int tolerance, int optimization, int numPoints);
 
-    std::vector<std::vector<PlanarRansacEstimator::Result>> createResultMatrix(Mat &testMatrix, std::vector<int> &start, std::vector<int> &end, std::vector<int> &adjs,
+    std::vector<std::vector<PlanarRansac::RansacResult>> createResultMatrix(Mat &testMatrix, std::vector<int> &start, std::vector<int> &end, std::vector<int> &adjs,
                 std::vector<int> &cAbove, std::vector<int> &cBelow, std::vector<int> &cOn, std::vector<std::vector<int> > &pointIDs,
                 std::vector<std::vector<Vec4f> > &n0Pre, std::vector<std::vector<float> > &distPre, float threshold, int passes, int tolerance, int optimization);
 
     static void calculateModel(Vec4f &fa, Vec4f &fb, Vec4f &rPoint, Vec4f &n0, float &dist);
 
-    void relabelCL(Mat &xyzh, Mat &newMask, Mat &oldLabel, Mat &newLabel,
-                  int desiredID, int srcID, float threshold, Result &result, int w, int h);
-
     void relabelCPU(Mat &xyzh, Mat &newMask, Mat &oldLabel, Mat &newLabel,
-                  int desiredID, int srcID, float threshold, Result &result, int w, int h);
+                  int desiredID, int srcID, float threshold, RansacResult &result, int w, int h);
 
 };
 

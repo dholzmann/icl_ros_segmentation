@@ -1,38 +1,8 @@
-/********************************************************************
-**                Image Component Library (ICL)                    **
-**                                                                 **
-** Copyright (C) 2006-2013 CITEC, University of Bielefeld          **
-**                         Neuroinformatics Group                  **
-** Website: www.iclcv.org and                                      **
-**          http://opensource.cit-ec.de/projects/icl               **
-**                                                                 **
-** File   : ICLGeom/src/ICLGeom/SegmenterUtils.cpp                 **
-** Module : ICLGeom                                                **
-** Authors: Andre Ueckermann                                       **
-**                                                                 **
-**                                                                 **
-** GNU LESSER GENERAL PUBLIC LICENSE                               **
-** This file may be used under the terms of the GNU Lesser General **
-** Public License version 3.0 as published by the                  **
-**                                                                 **
-** Free Software Foundation and appearing in the file LICENSE.LGPL **
-** included in the packaging of this file.  Please review the      **
-** following information to ensure the license requirements will   **
-** be met: http://www.gnu.org/licenses/lgpl-3.0.txt                **
-**                                                                 **
-** The development of this software was supported by the           **
-** Excellence Cluster EXC 277 Cognitive Interaction Technology.    **
-** The Excellence Cluster EXC 277 is a grant of the Deutsche       **
-** Forschungsgemeinschaft (DFG) in the context of the German       **
-** Excellence Initiative.                                          **
-**                                                                 **
-********************************************************************/
-
-#include "SegmenterUtils.h"
+#include "SegmenterHelper.h"
 
 using namespace cv;
 
-struct SegmenterUtils::Data {
+struct SegmenterHelper::Data {
   Data(Mode mode) {
     clReady = false;
     kernelSegmentColoringInitialized=false;
@@ -63,31 +33,27 @@ struct SegmenterUtils::Data {
 };
 
 
-SegmenterUtils::SegmenterUtils(Mode mode) :
+SegmenterHelper::SegmenterHelper(Mode mode) :
   m_data(new Data(mode)) {
       std::cout << "no openCL parallelization available" << std::endl;
   }
 
 
 
-SegmenterUtils::~SegmenterUtils() {
+SegmenterHelper::~SegmenterHelper() {
   delete m_data;
 }
 
 
-Mat SegmenterUtils::createColorImage(Mat &labelImage){
+Mat SegmenterHelper::createColorImage(Mat &labelImage){
   //core::Img8u colorImage;
   Mat colorImage;
-  if(m_data->useCL==true && m_data->clReady==true){
-    createColorImageCL(labelImage, colorImage);
-  }else{
-    createColorImageCPU(labelImage, colorImage);
-  }
+  createColorImageCPU(labelImage, colorImage);
   return colorImage;
 }
 
 
-/*core::Img8u*/Mat SegmenterUtils::createROIMask(/*core::DataSegment<float,4>*/Mat &xyzh, /*core::Img32f*/Mat &depthImage,
+/*core::Img8u*/Mat SegmenterHelper::createROIMask(/*core::DataSegment<float,4>*/Mat &xyzh, /*core::Img32f*/Mat &depthImage,
             float xMin, float xMax, float yMin, float yMax, float zMin, float zMax){
   Size size = depthImage.size();
   /*core::Img8u*/ Mat maskImage(size, CV_8UC1);
@@ -110,7 +76,7 @@ Mat SegmenterUtils::createColorImage(Mat &labelImage){
 }
 
 
-/*core::Img8u*/Mat SegmenterUtils::createMask(/*core::Img32f*/Mat &depthImage){
+/*core::Img8u*/Mat SegmenterHelper::createMask(/*core::Img32f*/Mat &depthImage){
   Size size = depthImage.size();
   /*core::Img8u*/Mat maskImage(size, CV_8UC1);
   /*core::Channel8uMat maskImageC = maskImage[0];
@@ -127,7 +93,7 @@ Mat SegmenterUtils::createColorImage(Mat &labelImage){
 }
 
 
-/*core::Img32s*/Mat SegmenterUtils::stabelizeSegmentation(/*core::Img32s*/Mat &labelImage){
+/*core::Img32s*/Mat SegmenterHelper::stabelizeSegmentation(/*core::Img32s*/Mat &labelImage){
   /*core::Img32s stableLabelImage(labelImage.getSize(),1,core::formatMatrix);
   core::Channel32s labelImageC = labelImage[0];
   core::Channel32s stableLabelImageC = stableLabelImage[0];
@@ -179,44 +145,33 @@ Mat SegmenterUtils::createColorImage(Mat &labelImage){
 }
 
 
-Mat SegmenterUtils::calculateAdjacencyMatrix(Mat &xyzh, Mat &labelImage,
+Mat SegmenterHelper::calculateAdjacencyMatrix(Mat &xyzh, Mat &labelImage,
                           Mat &maskImage, int radius, float euclideanDistance, int numSurfaces){
   //math::DynMatrix<bool> adjacencyMatrix;
   Mat adjacencyMatrix;
-  if(m_data->useCL==true && m_data->clReady==true){
-    adjacencyMatrix=edgePointAssignmentAndAdjacencyMatrixCL(xyzh, labelImage, maskImage, radius, euclideanDistance, numSurfaces, false);
-  }else{
-    adjacencyMatrix=edgePointAssignmentAndAdjacencyMatrixCPU(xyzh, labelImage, maskImage, radius, euclideanDistance, numSurfaces, false);
-  }
+  adjacencyMatrix=edgePointAssignmentAndAdjacencyMatrixCPU(xyzh, labelImage, maskImage, radius, euclideanDistance, numSurfaces, false);
+  
   return adjacencyMatrix;
 }
 
 
-void SegmenterUtils::edgePointAssignment(Mat &xyzh, Mat &labelImage,
+void SegmenterHelper::edgePointAssignment(Mat &xyzh, Mat &labelImage,
                           Mat &maskImage, int radius, float euclideanDistance, int numSurfaces){
   //math::DynMatrix<bool> adjacencyMatrix;
   Mat adjacencyMatrix;
-  if(m_data->useCL==true && m_data->clReady==true){
-    adjacencyMatrix=edgePointAssignmentAndAdjacencyMatrixCL(xyzh, labelImage, maskImage, radius, euclideanDistance, numSurfaces, true);
-  }else{
-    adjacencyMatrix=edgePointAssignmentAndAdjacencyMatrixCPU(xyzh, labelImage, maskImage, radius, euclideanDistance, numSurfaces, true);
-  }
+  adjacencyMatrix=edgePointAssignmentAndAdjacencyMatrixCPU(xyzh, labelImage, maskImage, radius, euclideanDistance, numSurfaces, true);
 }
 
 
-Mat SegmenterUtils::edgePointAssignmentAndAdjacencyMatrix(Mat &xyzh, Mat &labelImage,
+Mat SegmenterHelper::edgePointAssignmentAndAdjacencyMatrix(Mat &xyzh, Mat &labelImage,
                           Mat &maskImage, int radius, float euclideanDistance, int numSurfaces){
   Mat adjacencyMatrix;
-  if(m_data->useCL==true && m_data->clReady==true){
-    adjacencyMatrix=edgePointAssignmentAndAdjacencyMatrixCL(xyzh, labelImage, maskImage, radius, euclideanDistance, numSurfaces, true);
-  }else{
-    adjacencyMatrix=edgePointAssignmentAndAdjacencyMatrixCPU(xyzh, labelImage, maskImage, radius, euclideanDistance, numSurfaces, true);
-  }
+  adjacencyMatrix=edgePointAssignmentAndAdjacencyMatrixCPU(xyzh, labelImage, maskImage, radius, euclideanDistance, numSurfaces, true);
   return adjacencyMatrix;
 }
 
 
-std::vector<std::vector<int> > SegmenterUtils::extractSegments(Mat &labelImage){
+std::vector<std::vector<int> > SegmenterHelper::extractSegments(Mat &labelImage){
   int h=labelImage.size().height;
   int w=labelImage.size().width;
   //core::Channel32s labelImageC = labelImage[0];
@@ -235,7 +190,7 @@ std::vector<std::vector<int> > SegmenterUtils::extractSegments(Mat &labelImage){
 }
 
 
-void SegmenterUtils::relabel(Mat &labelImage, std::vector<std::vector<int> > &assignment, int maxOldLabel){
+void SegmenterHelper::relabel(Mat &labelImage, std::vector<std::vector<int> > &assignment, int maxOldLabel){
   std::vector<int> mapping;
   if(maxOldLabel>0){
     mapping.resize(maxOldLabel,0);
@@ -268,7 +223,7 @@ void SegmenterUtils::relabel(Mat &labelImage, std::vector<std::vector<int> > &as
 }
 
 
-bool SegmenterUtils::occlusionCheck(Mat &depthImage, Point p1, Point p2, float distanceTolerance, float outlierTolerance){
+bool SegmenterHelper::occlusionCheck(Mat &depthImage, Point p1, Point p2, float distanceTolerance, float outlierTolerance){
   //core::Channel32f depthImageC = depthImage[0];
   bool sampleX=false;//over x or y
   int step=0;//positive or negative
@@ -327,7 +282,7 @@ bool SegmenterUtils::occlusionCheck(Mat &depthImage, Point p1, Point p2, float d
   return true;
 }
 
-std::vector<std::vector<int> > SegmenterUtils::createLabelVectors(Mat &labelImage){
+std::vector<std::vector<int> > SegmenterHelper::createLabelVectors(Mat &labelImage){
   Size s = labelImage.size();
   //core::Channel32s labelImageC = labelImage[0];
   std::vector<std::vector<int> > labelVector;
@@ -346,7 +301,7 @@ std::vector<std::vector<int> > SegmenterUtils::createLabelVectors(Mat &labelImag
 }
 
 
-void SegmenterUtils::createColorImageCPU(Mat &labelImage, Mat &colorImage){
+void SegmenterHelper::createColorImageCPU(Mat &labelImage, Mat &colorImage){
   Size s = labelImage.size();
   //colorImage.size(s);
   //colorImage.setChannels(3);
@@ -403,7 +358,7 @@ void SegmenterUtils::createColorImageCPU(Mat &labelImage, Mat &colorImage){
 }
 
 
-std::vector<int> SegmenterUtils::calculateLabelReassignment(int countCur, int countLast, Mat &labelImageC, Mat &lastLabelImageC, Size size){
+std::vector<int> SegmenterHelper::calculateLabelReassignment(int countCur, int countLast, Mat &labelImageC, Mat &lastLabelImageC, Size size){
   //math::DynMatrix<int> assignmentMatrix(countCur,countLast,0);
   Mat assignmentMatrix(countCur,countLast,0);
   std::vector<int> lastNum(countLast,0);
@@ -474,7 +429,7 @@ std::vector<int> SegmenterUtils::calculateLabelReassignment(int countCur, int co
   return curAss;
 }
 
-Mat SegmenterUtils::edgePointAssignmentAndAdjacencyMatrixCPU(Mat &xyzh, Mat &labelImage,
+Mat SegmenterHelper::edgePointAssignmentAndAdjacencyMatrixCPU(Mat &xyzh, Mat &labelImage,
                           Mat &maskImage, int radius, float euclideanDistance, int numSurfaces, bool pointAssignment){
   Size s = labelImage.size();
   int w = s.width;

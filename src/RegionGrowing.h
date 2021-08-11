@@ -4,36 +4,36 @@
 #include <opencv2/core/matx.hpp>
 
 /// class for region growing on images and DataSegments (e.g. poincloud xyzh)
-/** The RegionGrower class is designed as template applying a growing criterion to given input data.
+/** The RegionGrower class is designed as template applying a growing Condition to given input data.
     A mask defines the points for processing (e.g. a region of interest).
 */
 using namespace cv;
 
-class RegionGrower{
+class RegionGrowing{
 
   public:
 
-    /// Applies the region growing on an input image with a growing criterion
+    /// Applies the region growing on an input image with a growing Condition
     /** @param image the input image for region growing
-        @param crit the region growing criterion
+        @param crit the region growing Condition
         @param initialMask the initial mask (e.g. ROI)
         @param minSize the minimum size of regions (smaller regions are removed)
         @param startID the start id for the result label image
         @return the result label image
     */
-    template<class Criterion>
-    const Mat &apply(const Mat_<int> &image, Criterion crit, Mat *initialMask = 0,
+    template<class Condition>
+    const Mat &apply(const Mat_<int> &image, Condition crit, Mat *initialMask = 0,
                         const unsigned int minSize=0, const unsigned int startID=1){
       this->result=Mat(image);
       //this->mask=Img8u(image.getParams());
       Mat &useMask = initialMask ? *initialMask : this->mask;
-      region_grow<Mat,int,1, Criterion>(image, useMask, this->result, crit, minSize, startID);
+      region_grow<Mat,int,1, Condition>(image, useMask, this->result, crit, minSize, startID);
       return this->result;
     }
 
-    /// Applies the region growing on an input image with a growing criterion
+    /// Applies the region growing on an input image with a growing Condition
     /** @param image the input image for region growing
-        @param crit the region growing criterion
+        @param crit the region growing Condition
         @param initialMask the initial mask (e.g. ROI)
         @param minSize the minimum size of regions (smaller regions are removed)
         @param startID the start id for the result label image
@@ -47,25 +47,25 @@ class RegionGrower{
       return this->result;
     }
 
-    /// Applies the region growing on an input data segment with a growing criterion
+    /// Applies the region growing on an input data segment with a growing Condition
     /** @param dataseg the input data segment for region growing
-        @param crit the region growing criterion
+        @param crit the region growing Condition
         @param initialMask the initial mask (e.g. ROI)
         @param minSize the minimum size of regions (smaller regions are removed)
         @param startID the start id for the result label image
         @return the result label image
     */
-    template<class Criterion>
-    const Mat &apply(const Mat_<float> &dataseg, Criterion crit, Mat *initialMask = 0,
+    template<class Condition>
+    const Mat &apply(const Mat_<float> &dataseg, Condition crit, Mat *initialMask = 0,
                         const unsigned int minSize=0, const unsigned int startID=1){
       Mat &useMask = initialMask ? *initialMask : this->mask;
       this->result = cv::Mat(dataseg.size(), CV_32FC1);
-      region_grow<Mat,float,4, Criterion>(dataseg, useMask, this->result, crit, minSize, startID);
+      region_grow<Mat,float,4, Condition>(dataseg, useMask, this->result, crit, minSize, startID);
       return this->result;
     }
 
 
-    /// Applies the region growing on an input data segment with euclidean distance criterion
+    /// Applies the region growing on an input data segment with euclidean distance Condition
     /** @param dataseg the input data segment for region growing
         @param mask the initial mask (e.g. ROI)
         @param threshold the maximum euclidean distance
@@ -79,10 +79,10 @@ class RegionGrower{
     }
 
 
-    /// Applies the region growing on an input image with value-equals-threshold criterion
+    /// Applies the region growing on an input image with value-equals-threshold Condition
     /** @param image the input image for region growing
         @param mask the initial mask (e.g. ROI)
-        @param threshold the equals-to-value (growing criterion)
+        @param threshold the equals-to-value (growing Condition)
         @param minSize the minimum size of regions (smaller regions are removed)
         @param startID the start id for the result label image
         @return the result label image
@@ -151,13 +151,13 @@ class RegionGrower{
     };
 
 
-    template<class T, class DataT, int DIM, class Criterion>
+    template<class T, class DataT, int DIM, class Condition>
     static void flood_fill(const RegionGrowerDataAccessor<T,DataT,DIM> &a, int xStart, int yStart,
-                            Mat &processed, Criterion crit, std::vector<int> &result,  Mat &result2, int id);
+                            Mat &processed, Condition crit, std::vector<int> &result,  Mat &result2, int id);
 
 
-    template<class T, class DataT, int DIM, class Criterion>
-    void region_grow(const T &data, Mat &mask, Mat &result, Criterion crit, const unsigned int minSize, const unsigned int startID=1){
+    template<class T, class DataT, int DIM, class Condition>
+    void region_grow(const T &data, Mat &mask, Mat &result, Condition crit, const unsigned int minSize, const unsigned int startID=1){
       RegionGrowerDataAccessor<T,DataT,DIM> a(data);
 
       Mat processed = mask;
@@ -175,7 +175,7 @@ class RegionGrower{
         for(int x=0;x<a.w();++x){
           if(!p.at<bool>(x,y) && crit(a(x,y),a(x,y))){
             r.clear();
-            flood_fill<T,DataT,DIM,Criterion>(a ,x ,y ,p, crit, r, res, nextID++);
+            flood_fill<T,DataT,DIM,Condition>(a ,x ,y ,p, crit, r, res, nextID++);
             if(r.size()<minSize){
               nextID--;
               clear.push_back(r);//delete later
@@ -199,7 +199,7 @@ class RegionGrower{
 
 
   template<>
-  struct RegionGrower::RegionGrowerDataAccessor<Mat, int, 1>{
+  struct RegionGrowing::RegionGrowerDataAccessor<Mat, int, 1>{
     const Mat c;
     RegionGrowerDataAccessor(const Mat &image):c(image){}
     int w() const { return c.size().width; }
@@ -208,7 +208,7 @@ class RegionGrower{
   };
 
   template<>
-  struct RegionGrower::RegionGrowerDataAccessor<Mat, int, 3>{
+  struct RegionGrowing::RegionGrowerDataAccessor<Mat, int, 3>{
     Mat c;
       RegionGrowerDataAccessor(const Mat &image){
         c = Mat(image);
@@ -222,7 +222,7 @@ class RegionGrower{
   };
 
   template<>
-  struct RegionGrower::RegionGrowerDataAccessor<Mat, float, 4>{
+  struct RegionGrowing::RegionGrowerDataAccessor<Mat, float, 4>{
     Mat data;
     int ww,hh;
     RegionGrowerDataAccessor(const Mat &data):data(data){
@@ -234,9 +234,9 @@ class RegionGrower{
     Vec4f operator()(int x, int y) const { return data.at<Vec4f>(x,y); }
   };
 
-  template<class T, class DataT, int DIM, class Criterion>
-  void RegionGrower::flood_fill(const RegionGrowerDataAccessor<T,DataT,DIM> &a, int xStart, int yStart,
-                            Mat &processed, Criterion crit, std::vector<int> &result,  Mat &result2, int id){
+  template<class T, class DataT, int DIM, class Condition>
+  void RegionGrowing::flood_fill(const RegionGrowerDataAccessor<T,DataT,DIM> &a, int xStart, int yStart,
+                            Mat &processed, Condition crit, std::vector<int> &result,  Mat &result2, int id){
     std::vector<Point> stack(1,Point(xStart,yStart));
     processed.at<bool>(xStart,yStart) = true;//update mask
     result2.at<int>(xStart,yStart) = id;//update result image

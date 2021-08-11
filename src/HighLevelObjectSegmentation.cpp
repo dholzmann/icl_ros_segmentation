@@ -7,7 +7,7 @@ Mat ObjectSegmenter::apply(Data &data, Mat xyz, const Mat &edgeImage, Mat &depth
         ObjectSegmenter::surfaceSegmentation(data, xyz, edgeImage, depthImg, data.minSurfaceSize, useROI);
 
         if(data.surfaceSize>0){
-          data.features=SurfaceFeatureExtractor::apply(data.labelImage, xyz, normals, SurfaceFeatureExtractor::ALL);
+          data.features=SurfaceFeatureExtract::apply(data.labelImage, xyz, normals, SurfaceFeatureExtract::ALL);
     
           Mat initialMatrix = data.segUtils->edgePointAssignmentAndAdjacencyMatrix(xyz, data.labelImage, 
                                   data.maskImage, data.assignmentRadius, data.assignmentDistance, data.surfaces.size());

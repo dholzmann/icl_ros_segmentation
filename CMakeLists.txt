@@ -66,26 +66,48 @@ set(LIB_SRC
 	src/Kinect.cpp
 	src/preSegmentation.cpp
   src/HighLevelObjectSegmentation.cpp
-  src/SurfaceFeatureExtractor.cpp
-  src/CurvatureFeatureExtractor.cpp
-  src/CutfreeAdjacencyFeatureExtractor.cpp
+  src/SurfaceFeature.cpp
+  src/CurvatureFeature.cpp
+  src/CutfreeAdjacencyFeature.cpp
   src/FeatureGraphSegmenter.cpp
-  src/PlanarRansacEstimator.cpp
-  src/RemainingPointsFeatureExtractor.cpp
-  src/SegmenterUtils.cpp
+  src/PlanarRansac.cpp
+  src/RemainingPointsFeature.cpp
+  src/SegmenterHelper.cpp
+  src/helper/icl_cv_helper.cpp
 	)
 set(LIB_INC
 	src/Kinect.h
 	src/preSegmentation.h
   src/HighLevelObjectSegmentation.h
-  src/SurfaceFeatureExtractor.h
-  src/CurvatureFeatureExtractor.h
-  src/CutfreeAdjacencyFeatureExtractor.h
+  src/SurfaceFeature.h
+  src/CurvatureFeature.h
+  src/CutfreeAdjacencyFeature.h
   src/FeatureGraphSegmenter.h
-  src/PlanarRansacEstimator.h
-  src/RemainingPointsFeatureExtractor.h
-  src/SegmenterUtils.h
-  src/RegionGrower.h
+  src/PlanarRansac.h
+  src/RemainingPointsFeature.h
+  src/SegmenterHelper.h
+  src/RegionGrowing.h
+  src/helper/icl_cv_helper.h
+)
+
+set(EXEC
+  src/SurfaceFeature.h
+  src/CurvatureFeature.h
+  src/CutfreeAdjacencyFeature.h
+  src/FeatureGraphSegmenter.h
+  src/PlanarRansac.h
+  src/RemainingPointsFeature.h
+  src/SegmenterHelper.h
+  src/RegionGrowing.h
+  src/helper/icl_cv_helper.h
+  src/SurfaceFeature.cpp
+  src/CurvatureFeature.cpp
+  src/CutfreeAdjacencyFeature.cpp
+  src/FeatureGraphSegmenter.cpp
+  src/PlanarRansac.cpp
+  src/RemainingPointsFeature.cpp
+  src/SegmenterHelper.cpp
+  src/helper/icl_cv_helper.cpp
 )
 
 ## Declare a C++ library
@@ -100,7 +122,7 @@ target_link_libraries(icl_ros_segmentation
 
 ## Declare a C++ executable  
 # NEED to add the configurabledepthimagesegmenter here, out of the lib, otherwise ICL version of this file is linked and used)
-add_executable(icl_ros_segmentation_node src/icl_ros_segmentation_node.cpp src/ConfigurableDepthImageSegmenter.cpp src/ConfigurableDepthImageSegmenter.h src/FeatureGraphSegmenter.cpp src/FeatureGraphSegmenter.h) 
+add_executable(icl_ros_segmentation_node src/icl_ros_segmentation_node.cpp ${EXEC} src/ConfigurableDepthImageSegmenter.cpp src/ConfigurableDepthImageSegmenter.h src/FeatureGraphSegmenter.cpp src/FeatureGraphSegmenter.h) 
 
 ## Add cmake target dependencies of the executable
 ## same as for the library above

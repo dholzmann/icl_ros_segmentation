@@ -2,13 +2,13 @@
 
 #include <opencv2/opencv.hpp>
 #include <opencv2/core/matx.hpp>
-#include "PlanarRansacEstimator.h"
-#include "SurfaceFeatureExtractor.h"
+#include "PlanarRansac.h"
+#include "SurfaceFeature.h"
  
  using namespace cv;
 /**
    This class implements the cutfree adjacency feature for feature-graph based segmentation.*/
-class CutfreeAdjacencyFeatureExtractor{
+class CutfreeAdjacencyFeature{
 
   public:
 
@@ -17,10 +17,10 @@ class CutfreeAdjacencyFeatureExtractor{
   /// Constructor
   /** Constructs an object of this class.
       @param mode GPU, CPU and BEST (default) */
-  CutfreeAdjacencyFeatureExtractor(Mode mode=BEST);
+  CutfreeAdjacencyFeature(Mode mode=BEST);
 
   /// Destructor
-  ~CutfreeAdjacencyFeatureExtractor();
+  ~CutfreeAdjacencyFeature();
 
   /// Calculates the cutfree adjacency feature matrix.
   /** @param xyzh the xyzh DataSegment from the PointCloudObject class
@@ -49,7 +49,7 @@ class CutfreeAdjacencyFeatureExtractor{
     Mat apply(Mat &xyzh,
             std::vector<std::vector<int> > &surfaces, Mat &testMatrix, float euclideanDistance,
             int passes, int tolerance, Mat labelImage,
-            std::vector<SurfaceFeatureExtractor::SurfaceFeature> feature, float minAngle);
+            std::vector<SurfaceFeatureExtract::SurfaceRegionFeature> feature, float minAngle);
 
   private:
 

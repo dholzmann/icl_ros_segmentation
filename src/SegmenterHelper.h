@@ -1,33 +1,3 @@
-/********************************************************************
-**                Image Component Library (ICL)                    **
-**                                                                 **
-** Copyright (C) 2006-2013 CITEC, University of Bielefeld          **
-**                         Neuroinformatics Group                  **
-** Website: www.iclcv.org and                                      **
-**          http://opensource.cit-ec.de/projects/icl               **
-**                                                                 **
-** File   : ICLGeom/src/ICLGeom/SegmenterUtils.h                   **
-** Module : ICLGeom                                                **
-** Authors: Andre Ueckermann                                       **
-**                                                                 **
-**                                                                 **
-** GNU LESSER GENERAL PUBLIC LICENSE                               **
-** This file may be used under the terms of the GNU Lesser General **
-** Public License version 3.0 as published by the                  **
-**                                                                 **
-** Free Software Foundation and appearing in the file LICENSE.LGPL **
-** included in the packaging of this file.  Please review the      **
-** following information to ensure the license requirements will   **
-** be met: http://www.gnu.org/licenses/lgpl-3.0.txt                **
-**                                                                 **
-** The development of this software was supported by the           **
-** Excellence Cluster EXC 277 Cognitive Interaction Technology.    **
-** The Excellence Cluster EXC 277 is a grant of the Deutsche       **
-** Forschungsgemeinschaft (DFG) in the context of the German       **
-** Excellence Initiative.                                          **
-**                                                                 **
-********************************************************************/
-
 /// Support class for segmentation algorithms.
 /** This class provides supporting methods for segmentation algorithms.*/
 #include <opencv2/opencv.hpp>
@@ -40,7 +10,7 @@
 
 using namespace cv;
 
-class SegmenterUtils{
+class SegmenterHelper{
 
     public:
     enum Mode {BEST, GPU, CPU};
@@ -48,11 +18,11 @@ class SegmenterUtils{
     /// Constructor
     /** Constructs an object of this class.
         @param mode the selected mode: CPU, GPU or BEST (uses GPU if available)*/
-    SegmenterUtils(Mode mode=BEST);
+    SegmenterHelper(Mode mode=BEST);
 
 
     /// Destructor
-    ~SegmenterUtils();
+    ~SegmenterHelper();
 
 
     /// Creates a color image (e.g. for pointcloud coloring) from a given segmentation label image.
@@ -156,15 +126,10 @@ class SegmenterUtils{
     struct Data;  //!< internal data type
     Data *m_data; //!< internal data pointer
 
-    void createColorImageCL(Mat &labelImage, Mat &colorImage);
-
     void createColorImageCPU(Mat &labelImage, Mat &colorImage);
 
     std::vector<int> calculateLabelReassignment(int countCur, int countLast, Mat &labelImageC, Mat &lastLabelImageC, Size size);
-
-    Mat edgePointAssignmentAndAdjacencyMatrixCL(Mat &xyzh, Mat &labelImage,
-                            Mat &maskImage, int radius, float euclideanDistance, int numSurfaces, bool pointAssignment);
-
+    
     Mat edgePointAssignmentAndAdjacencyMatrixCPU(Mat &xyzh, Mat &labelImage,
                             Mat &maskImage, int radius, float euclideanDistance, int numSurfaces, bool pointAssignment);
 
