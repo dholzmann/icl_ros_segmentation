@@ -74,6 +74,7 @@ set(LIB_SRC
   src/RemainingPointsFeature.cpp
   src/SegmenterHelper.cpp
   src/helper/icl_cv_helper.cpp
+  src/GraphCut.cpp
 	)
 set(LIB_INC
 	src/Kinect.h
@@ -88,6 +89,7 @@ set(LIB_INC
   src/SegmenterHelper.h
   src/RegionGrowing.h
   src/helper/icl_cv_helper.h
+  src/GraphCut.h
 )
 
 set(EXEC
@@ -100,6 +102,7 @@ set(EXEC
   src/SegmenterHelper.h
   src/RegionGrowing.h
   src/helper/icl_cv_helper.h
+  src/GraphCut.h
   src/SurfaceFeature.cpp
   src/CurvatureFeature.cpp
   src/CutfreeAdjacencyFeature.cpp
@@ -108,6 +111,7 @@ set(EXEC
   src/RemainingPointsFeature.cpp
   src/SegmenterHelper.cpp
   src/helper/icl_cv_helper.cpp
+  src/GraphCut.cpp
 )
 
 ## Declare a C++ library
