@@ -4,97 +4,118 @@ using namespace cv;
 
 cv::Mat ObjectSegmenter::apply(ObjectSegmenter::Data &data, cv::Mat xyz, const Mat &edgeImage, Mat &depthImg, Mat normals, bool stabilize, bool useROI, bool useCutfreeAdjacency, 
     bool useCoplanarity, bool useCurvature, bool useRemainingPoints){
+        std::cout << "suface segmentation" << std::endl;
         ObjectSegmenter::surfaceSegmentation(data, xyz, edgeImage, depthImg, data.minSurfaceSize, useROI);
+        std::cout << "suface segmentation finished" << std::endl;
         Mat cutfreeMatrix;
         Mat coplanMatrix; 
         Mat curveMatrix;
         Mat remainingMatrix;
         if(data.surfaceSize>0){
+          std::cout << "suface feature" << std::endl;
           data.features=SurfaceFeatureExtract::apply(data.labelImage, xyz, normals, SurfaceFeatureExtract::ALL);
-    
+          std::cout << "edge point assignment" << std::endl;
           Mat initialMatrix = data.segUtils->edgePointAssignmentAndAdjacencyMatrix(xyz, data.labelImage, 
                                   data.maskImage, data.assignmentRadius, data.assignmentDistance, data.surfaces.size());
           
           Mat resultMatrix(data.surfaces.size(), data.surfaces.size(), false);
           
           if(useCutfreeAdjacency){
+            std::cout << "cutfree" << std::endl;
             cutfreeMatrix = data.cutfree->apply(xyz, 
                       data.surfaces, initialMatrix, data.cutfreeRansacEuclideanDistance, 
               data.cutfreeRansacPasses, data.cutfreeRansacTolerance, data.labelImage, data.features, data.cutfreeMinAngle);
+            std::cout << "merge" << std::endl;
             GraphCut::mergeMatrix(resultMatrix, cutfreeMatrix);
           }
           if(useCoplanarity){
+            std::cout << "coplanar" << std::endl;
 		        coplanMatrix = CoPlanarityFeature::apply(initialMatrix, data.features, depthImg, data.surfaces, data.coplanarityMaxAngle,
                             data.coplanarityDistanceTolerance, data.coplanarityOutlierTolerance, data.coplanarityNumTriangles, data.coplanarityNumScanlines);
+            std::cout << "merge" << std::endl;                            
       	    GraphCut::mergeMatrix(resultMatrix, coplanMatrix);
           }
 
           if(useCurvature){
+            std::cout << "curvature" << std::endl;
 		        curveMatrix = CurvatureFeature::apply(depthImg, xyz, initialMatrix, data.features, data.surfaces, normals,
                                               data.curvatureUseOpenObjects, data.curvatureUseOccludedObjects, data.curvatureHistogramSimilarity, 
                                               data.curvatureMaxDistance, data.curvatureMaxError, data.curvatureRansacPasses, data.curvatureDistanceTolerance, 
                                               data.curvatureOutlierTolerance);
+            std::cout << "merge" << std::endl;
             GraphCut::mergeMatrix(resultMatrix, curveMatrix);
           }
+          std::cout << "leabel vektor" << std::endl;
           data.surfaces = data.segUtils->createLabelVectors(data.labelImage);
-	      
+          std::cout << "thresholdcut" << std::endl;
 	        data.segments = GraphCut::thresholdCut(resultMatrix, data.graphCutThreshold);  
         }	    
 	      if(useRemainingPoints){
+          std::cout << "remaining points" << std::endl;
 	        remainingMatrix = RemainingPointsFeature::apply(xyz, depthImg, data.labelImage, data.maskImage, 
                             data.surfaces, data.remainingMinSize, data.remainingEuclideanDistance, data.remainingRadius, data.remainingAssignEuclideanDistance);
 	      }
-	      
+	      std::cout << "relabel" << std::endl;
 	      data.segUtils->relabel(data.labelImage, data.segments, data.surfaces.size());
-      
+        std::cout << "colored image" << std::endl;
 	      return getColoredLabelImage(data, stabilize);
 	    }   
 
 cv::Mat ObjectSegmenter::applyHierarchy(ObjectSegmenter::Data &data, cv::Mat xyz, const Mat &edgeImage, Mat &depthImg, Mat normals, bool stabilize, bool useROI, bool useCutfreeAdjacency, 
     bool useCoplanarity, bool useCurvature, bool useRemainingPoints,
     float weightCutfreeAdjacency, float weightCoplanarity, float weightCurvature, float weightRemainingPoints){
+        std::cout << "suface segmentation" << std::endl;
         ObjectSegmenter::surfaceSegmentation(data, xyz, edgeImage, depthImg, data.minSurfaceSize, useROI);
         Mat cutfreeMatrix;
         Mat coplanMatrix; 
         Mat curveMatrix;
         Mat remainingMatrix;
         Mat probabilityMatrix;
+        
         if(data.surfaceSize>0){
+          std::cout << "suface feature extractor" << std::endl;
           data.features=SurfaceFeatureExtract::apply(data.labelImage, xyz, normals, SurfaceFeatureExtract::ALL);
-    
+          std::cout << "edge point assignment and adjacency matrix" << std::endl;
           Mat initialMatrix = data.segUtils->edgePointAssignmentAndAdjacencyMatrix(xyz, data.labelImage, 
                                   data.maskImage, data.assignmentRadius, data.assignmentDistance, data.surfaces.size());
           
-          Mat resultMatrix(data.surfaces.size(), data.surfaces.size(), false);
+          Mat resultMatrix(data.surfaces.size(), data.surfaces.size(), CV_8SC1);
           
           if(useCutfreeAdjacency){
+            std::cout << "Cut free" << std::endl;
             cutfreeMatrix = data.cutfree->apply(xyz, 
                       data.surfaces, initialMatrix, data.cutfreeRansacEuclideanDistance, 
               data.cutfreeRansacPasses, data.cutfreeRansacTolerance, data.labelImage, data.features, data.cutfreeMinAngle);
+            std::cout << "Cut Free merge matrix" << std::endl;
             GraphCut::mergeMatrix(resultMatrix, cutfreeMatrix);
           }
           if(useCoplanarity){
+            std::cout << "CoPlanarity" << std::endl;
 		        coplanMatrix = CoPlanarityFeature::apply(initialMatrix, data.features, depthImg, data.surfaces, data.coplanarityMaxAngle,
                             data.coplanarityDistanceTolerance, data.coplanarityOutlierTolerance, data.coplanarityNumTriangles, data.coplanarityNumScanlines);
+            std::cout << "Coplanarity merge matrix" << std::endl;
       	    GraphCut::mergeMatrix(resultMatrix, coplanMatrix);
           }
 
           if(useCurvature){
+            std::cout << "Curvature" << std::endl;
 		        curveMatrix = CurvatureFeature::apply(depthImg, xyz, initialMatrix, data.features, data.surfaces, normals,
                                               data.curvatureUseOpenObjects, data.curvatureUseOccludedObjects, data.curvatureHistogramSimilarity, 
                                               data.curvatureMaxDistance, data.curvatureMaxError, data.curvatureRansacPasses, data.curvatureDistanceTolerance, 
                                               data.curvatureOutlierTolerance);
+            std::cout << "Curvature merge matrix" << std::endl;
             GraphCut::mergeMatrix(resultMatrix, curveMatrix);
         }	    
 	      if(useRemainingPoints){
+          std::cout << "Remaining points" << std::endl;
 	        remainingMatrix = RemainingPointsFeature::apply(xyz, depthImg, data.labelImage, data.maskImage, 
                             data.surfaces, data.remainingMinSize, data.remainingEuclideanDistance, data.remainingRadius, data.remainingAssignEuclideanDistance);
-                            
+          std::cout << "Reamining points merge matrix" << std::endl;
           GraphCut::mergeMatrix(resultMatrix, remainingMatrix);
 	      }
-	      
+	      std::cout << "calculate probs" << std::endl;
 	      probabilityMatrix = GraphCut::calculateProbabilityMatrix(resultMatrix, true);
-	      
+	      std::cout << "weights" << std::endl;
 	      GraphCut::weightMatrix(probabilityMatrix, cutfreeMatrix, weightCutfreeAdjacency);
 	      GraphCut::weightMatrix(probabilityMatrix, coplanMatrix, weightCoplanarity);
 	      GraphCut::weightMatrix(probabilityMatrix, curveMatrix, weightCurvature);
@@ -110,59 +131,69 @@ cv::Mat ObjectSegmenter::applyHierarchy(ObjectSegmenter::Data &data, cv::Mat xyz
 
 void ObjectSegmenter::surfaceSegmentation(Data &data, Mat &xyz, const Mat &edgeImg, Mat &depthImg, int minSurfaceSize, bool useROI){
     data.surfaces.clear();
-
+    std::cout << "1" << std::endl;
     if(useROI){//create mask
+        std::cout << "2" << std::endl;
         data.maskImage = data.segUtils->createROIMask(xyz, depthImg, data.xMinROI, 
                 data.xMaxROI, data.yMinROI, data.yMaxROI, data.zMinROI, data.zMaxROI);
     }else{
+        std::cout << "3" << std::endl;
         data.maskImage = data.segUtils->createMask(depthImg);
     }
-
+    std::cout << "4" << std::endl;
     for(int y=0; y<depthImg.size[0]; y++){
       for(int x=0; x<depthImg.size[1]; x++){
-        if(depthImg.at<float>(x,y,0)==0){
-          data.maskImage.at<float>(x,y,0) = 1;
+        if(depthImg.at<bool>(x,y,0)==0){
+          data.maskImage.at<bool>(x,y,0) = 1;
         }
       }
     }
-
+    std::cout << "5" << std::endl;
     for(int x=0; x<data.ulCorner; x++){
       for(int y=0; y<data.ulCorner-x; y++){
-        data.maskImage.at<float>(x,y,0) = 1;
+        data.maskImage.at<bool>(x,y,0) = 1;
       }
     }
-    
+    std::cout << "6" << std::endl;
     for(int x=0; x<data.urCorner; x++){
       for(int y=0; y<data.urCorner-x; y++){
-        data.maskImage.at<float>(data.maskImage.size().width-x-1, y, 0) = 1;
+        data.maskImage.at<bool>(data.maskImage.size().width-x-1, y, 0) = 1;
       }
     }
     for(int x=0; x<data.llCorner; x++){
       for(int y=0; y<data.llCorner-x; y++){
-        data.maskImage.at<float>(x,data.maskImage.size().height-y-1,0)=1;
+        data.maskImage.at<bool>(x,data.maskImage.size().height-y-1,0)=1;
       }
     }
     for(int x=0; x<data.lrCorner; x++){
       for(int y=0; y<data.lrCorner-x; y++){
-        data.maskImage.at<float>(data.maskImage.size().width-x-1,data.maskImage.size().height-y-1,0)=1;
+        data.maskImage.at<bool>(data.maskImage.size().width-x-1,data.maskImage.size().height-y-1,0)=1;
       }
     }
-
-    int w = edgeImg.size().width;
-    
+    Size size = data.labelImage.size();
+    int w = size.width;
+    int h = size.height;
+    std::cout << "7" << std::endl;
     //mask edge image
-    Mat edgeImgMasked(edgeImg.size(), CV_8UC1);
-    Size size = edgeImg.size();
-    for(int y=0; y<size.height; y++){
-      for(int x=0; x<size.width; x++){
-        if(data.maskImage.at<int>(x,y)==1){
-          edgeImgMasked.at<int>(x,y)=0;
+    std::cout << h<<":"<<w << std::endl;
+    Mat edgeImgMasked;
+    edgeImgMasked = Mat::zeros(h, w, CV_8UC1);
+    std::cout << "7.2" << std::endl;
+    for(int y=0; y<h; y++){
+      for(int x=0; x<w; x++){
+        std::cout << y<<":"<<x <<":"<<size<< std::endl;
+        if(data.maskImage.at<bool>(y,x)==1){
+          edgeImgMasked.at<int>(y,x)=0;
         }else{
-          edgeImgMasked.at<int>(x,y)=edgeImg.at<int>(x,y);
+          edgeImgMasked.at<int>(y,x)=edgeImg.at<int>(y,x);
         }
       }
     }
-    int num_labels = connectedComponents(edgeImgMasked, data.labelImage, 4, CV_32S);
+    std::cout << "8" << std::endl;
+    std::cout << data.labelImage << std::endl;
+    //std::cout << data.labelImage << std::endl;
+    int num_labels = connectedComponents(edgeImgMasked, data.labelImage, 4, CV_16U);
+    std::cout << "9" << std::endl;
 }
 
 

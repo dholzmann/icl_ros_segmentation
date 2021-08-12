@@ -1,6 +1,7 @@
 #include "preSegmentation.h"
-
+#include <chrono>
 using namespace cv;
+using namespace std::chrono;
 namespace EdgeDetector{
 
 
@@ -103,8 +104,6 @@ void applyNormalCalculation(Data &data) {
     int r = data.normalRange;
     for (int y = 0; y < data.height; y++) {
         for (int x = 0; x < data.width; x++) {
-            //int i = x + width * y;
-            //std::cout << y << "," << x << std::endl;
             if (y < r || y >= data.height- r || x < r || x >= data.width - r){
                 Vec4f p = data.normals.at<Vec4f>(y, x);
                 p[0] = 0;
@@ -113,8 +112,7 @@ void applyNormalCalculation(Data &data) {
 				p[3] = 0;
             } else {
                 // cross product normal determination
-                
-                float fa1[3], fb1[3], n1[3], n01[3];
+                Vec3f fa1, fb1, n1, n01;
                 
                 fa1[0] = (x + r) - (x - r);
 				fa1[1] = (y - r) - (y - r);
@@ -124,16 +122,11 @@ void applyNormalCalculation(Data &data) {
 				fb1[1] = (y + r) - (y - r);
                 fb1[2] = data.filteredImage.at<float>(y + r, x)
 						- data.filteredImage.at<float>(y - r, x - r);
-                
-				n1[0] = fa1[1] * fb1[2] - fa1[2] * fb1[1];
-				n1[1] = fa1[2] * fb1[0] - fa1[0] * fb1[2];
-				n1[2] = fa1[0] * fb1[1] - fa1[1] * fb1[0];
-                
-                float norm = sqrt(pow(n1[0],2)+ pow(n1[1],2) + pow(n1[2],2));
-				n01[0] = n1[0] / norm;
-				n01[1] = n1[1] / norm;
-				n01[2] = n1[2] / norm;
-                
+
+                n1 = fa1.cross(fb1);
+				float norm = cv::norm(n1, NORM_L2);
+				n01 = n1/norm;
+
                 data.normals.at<Vec4f>(y, x)[0] = n01[0];
 			    data.normals.at<Vec4f>(y, x)[1] = n01[1];
 				data.normals.at<Vec4f>(y, x)[2] = n01[2];
@@ -141,16 +134,7 @@ void applyNormalCalculation(Data &data) {
             }
         }
     }
-	//std::cout << data.normalAveragingRange << std::endl;
 	GaussianBlur(data.normals, data.avgNormals, Size(data.normalAveragingRange,data.normalAveragingRange), 0, 0, BORDER_ISOLATED);
-	//applyGaussianNormalSmoothing(data);
-	/*
-    if (data.useNormalAveraging && !data.useGaussSmoothing) {
-        applyLinearNormalAveraging(data);
-    } else if (data.useNormalAveraging && data.useGaussSmoothing) {
-        GaussianBlur(data.normals, data.avgNormals, Size(data.normalAveragingRange,data.normalAveragingRange), 0, 0, BORDER_ISOLATED);
-		//applyGaussianNormalSmoothing(data);
-    }*/
 }
 
 void applyLinearNormalAveraging(Data &data){
@@ -253,10 +237,6 @@ void applyGaussianNormalSmoothing(Data &data) {
 	float norm = data.kNorm;
 	int l = data.kL;
 	std::cout << kernel << std::endl;
-	Mat res;
-	GaussianBlur(data.normals, res, Size(5,5),-1,0.0,BORDER_ISOLATED);
-	imshow("gaus", res);
-	cv::waitKey(1);
     for (int y = 0; y < data.height; y++) {
 	    for (int x = 0; x < data.width; x++) {
 		    int i = x + data.width * y;
@@ -284,9 +264,11 @@ void applyGaussianNormalSmoothing(Data &data) {
 		    }
 	    }
     }
+	cv::imshow("own GaussianBlur", data.avgNormals);
 }
 
 void preSeg_calculate(Mat &depthImage, Data &data){
+	auto start0 = high_resolution_clock::now();
     if (data.usedFilterFlag == false) {
 		data.filteredImage = depthImage;
 	} else {

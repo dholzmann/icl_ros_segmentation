@@ -20,20 +20,27 @@ std::vector<SurfaceFeatureExtract::SurfaceRegionFeature> SurfaceFeatureExtract::
   unsigned int h = labelImage.size().height;
 
   std::vector<SurfaceFeatureExtract::SurfaceRegionFeature> features;
+  std::cout << "1" << std::endl;
   for(unsigned int y=0; y<h; y++){
     for(unsigned int x=0; x<w; x++){
-      while((int)features.size() < labelImage.at<int>(x,y)){
+      std::cout << y<<";"<<x << ";"<<labelImage.at<int>(y,x) << std::endl;
+      while((int)features.size() < labelImage.at<int>(y,x)){
         features.push_back(SurfaceFeatureExtract::getInitializedStruct());
       }
-      if(labelImage.at<int>(x,y)>0){
-        features.at(labelImage.at<int>(x,y)-1).numPoints++;
-        update(normals.at<Vec4f>(x, y), xyzh.at<Vec4f>(x, y), features.at(labelImage.at<int>(x,y)-1), mode, x, y);
+      if(labelImage.at<int>(y,x)>0){
+        std::cout << "1.2" << std::endl;
+        features.at(labelImage.at<int>(y,x)-1).numPoints++;
+        std::cout << "1.3" << std::endl;
+        update(normals.at<Vec4f>(y, x), xyzh.at<Vec4f>(y, x), features.at(labelImage.at<int>(y,x)-1), mode, x, y);
+        std::cout << "1.4" << std::endl;
       }
     }
   }
+  std::cout << "2" << std::endl;
   for(unsigned int i=0; i<features.size(); i++){
     finish(features.at(i), mode);
   }
+  std::cout << "3" << std::endl;
   return features;
 }
 
@@ -91,16 +98,27 @@ void SurfaceFeatureExtract::update(Vec4f &normal, Vec4f &point, SurfaceRegionFea
 
 SurfaceFeatureExtract::SurfaceRegionFeature SurfaceFeatureExtract::getInitializedStruct(){
   SurfaceFeatureExtract::SurfaceRegionFeature feature;
+  std::cout << "yes1" << std::endl;
   feature.numPoints=0;
+  std::cout << "yes2" << std::endl;
   feature.normalHistogram = Mat::zeros(Size(11,11), CV_32FC(6));
+  std::cout << "yes3" << std::endl;
   feature.meanNormal=Vec4f();
+  std::cout << "yes4" << std::endl;
   feature.meanPosition=Vec4f();
+  std::cout << "yes5" << std::endl;
   feature.curvatureFactor = SurfaceFeatureExtract::UNDEFINED;
+  std::cout << "yes6" << std::endl;
   feature.boundingBox3D.first = Vec4f(1000000, 1000000, 1000000, 0);
+  std::cout << "yes7" << std::endl;
   feature.boundingBox3D.second = Vec4f(-1000000, -1000000, -1000000, 0);
+  std::cout << "yes8" << std::endl;
   feature.boundingBox2D.first = Point(1000000,1000000);
+  std::cout << "yes9" << std::endl;
   feature.boundingBox2D.second = Point(-1000000, -1000000);
+  std::cout << "yes10" << std::endl;
   feature.volume=0;
+  std::cout << "yes11" << std::endl;
   return feature;
 }
 

@@ -20,8 +20,8 @@ namespace ObjectSegmenter{
 
     struct Data {
         Data(int height, int width){
-            maskImage = cv::Mat(height, width, CV_8U);
-            labelImage = cv::Mat(height, width, CV_32S);
+            maskImage = cv::Mat::zeros(height, width, CV_8UC1);
+            labelImage = cv::Mat::zeros(height, width, CV_16UC1);
             xMinROI = 0, xMaxROI = 0;
             yMinROI = 0, yMaxROI = 0;
             zMinROI = 0, zMaxROI = 0;
@@ -72,11 +72,11 @@ namespace ObjectSegmenter{
         SegmenterHelper* segUtils;
         //RegionDetector* region;
             
-        std::vector<std::vector<int> > surfaces;
-        std::vector<std::vector<int> > segments;
+        std::vector<std::vector<int>> surfaces;
+        std::vector<std::vector<int>> segments;
 
-        cv::Mat maskImage;
-        cv::Mat labelImage;
+        cv::Mat maskImage= cv::Mat::zeros(480, 640, CV_8UC1);
+        cv::Mat labelImage= cv::Mat::zeros(480, 640, CV_16UC1);
 
         std::vector<SurfaceFeatureExtract::SurfaceRegionFeature> features;
 

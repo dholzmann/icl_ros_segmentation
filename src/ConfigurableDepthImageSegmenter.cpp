@@ -259,13 +259,13 @@ namespace icl{
     m_data->objectEdgeDetector->setDepthImage(raw);
     m_data->objectEdgeDetector->setFilteredDepthImage(filtered);
     
-    cv::imshow("angle", data.angleImage);
-    cv::imshow("edge", data.binarizedImage);
-    cv::imshow("filtered", data.filteredImage);
-    cv::imshow("normals", data.normals);
-    cv::imshow("avgNormals", data.avgNormals);
-    cv::imshow("raw", data.rawImage);
-    cv::waitKey(1);
+    //cv::imshow("angle", data.angleImage);
+    //cv::imshow("edge", data.binarizedImage);
+    //cv::imshow("filtered", data.filteredImage);
+    //cv::imshow("normals", data.normals);
+    //cv::imshow("avgNormals", data.avgNormals);
+    //cv::imshow("raw", data.rawImage);
+    //cv::waitKey(1);
     
     if (data.useNormalAveraging == true) {
       m_data->objectEdgeDetector->setNormals(avgNorm);
@@ -377,6 +377,38 @@ namespace icl{
 					//																					 stabelizeSegmentation, useROI, cutfreeEnable, coplanEnable, curveEnable, remainingEnable);
 //					obj.setColorsFromImage(lI);
         //}
+        /*
+        cv::Mat xyz(h, w, CV_32FC4);
+        icl::core::DataSegment<float, 4> xyz_ds = obj.selectXYZH();
+        DataSegment_to_Mat(xyz_ds, xyz, h, w);
+        ObjectSegmenter::Data objData = ObjectSegmenter::Data(h, w);
+
+        if(useROI){
+          ObjectSegmenter::setROI(objData, getPropertyValue("general.ROI min x"),
+                                      getPropertyValue("general.ROI max x"),
+                                      getPropertyValue("general.ROI min y"),
+                                      getPropertyValue("general.ROI max y"),
+                                      getPropertyValue("general.ROI min z"),
+                                      getPropertyValue("general.ROI max z"));
+                             
+        }
+        
+        ObjectSegmenter::setCornerRemoval(objData, getPropertyValue("general.img corner ll"),
+                                               getPropertyValue("general.img corner lr"),
+                                               getPropertyValue("general.img corner ul"),
+                                               getPropertyValue("general.img corner ur"));
+        
+        ObjectSegmenter::setMinSurfaceSize(objData, surfaceMinSize);
+        ObjectSegmenter::setAssignmentParams(objData, surfaceDistance, surfaceRadius);
+        ObjectSegmenter::setCutfreeParams(objData, cutfreeEuclDist, cutfreePasses, cutfreeTolerance, cutfreeMinAngle);
+        ObjectSegmenter::setCoplanarityParams(objData, coplanMaxAngle, coplanDistance, coplanOutlier, coplanNumTriangles, coplanNumScanlines);
+        ObjectSegmenter::setCurvatureParams(objData, curveHistogram, curveUseOpen, curveMaxDist, curveUseOccluded, curveMaxError, 
+                                curvePasses, curveDistance, curveOutlier);
+        ObjectSegmenter::setRemainingPointsParams(objData, remainingMinSize, remainingEuclDist, remainingRadius, remainingAssignEuclDist, remainingSupportTolerance);
+        ObjectSegmenter::setGraphCutThreshold(objData, graphcutThreshold);
+
+        cv::Mat result = ObjectSegmenter::apply(objData, xyz, data.binarizedImage, depth_image, data.normals, stabelizeSegmentation, useROI, cutfreeEnable, 
+            coplanEnable, curveEnable, remainingEnable);*/
       } 
       
     obj.unlock();  

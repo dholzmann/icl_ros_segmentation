@@ -56,19 +56,16 @@ Mat SegmenterHelper::createColorImage(Mat &labelImage){
 /*core::Img8u*/Mat SegmenterHelper::createROIMask(/*core::DataSegment<float,4>*/Mat &xyzh, /*core::Img32f*/Mat &depthImage,
             float xMin, float xMax, float yMin, float yMax, float zMin, float zMax){
   Size size = depthImage.size();
-  /*core::Img8u*/ Mat maskImage(size, CV_8UC1);
-  //core::Channel8u maskImageC = maskImage[0];
-  //core::Channel32f depthImageC = depthImage[0];
+  Mat maskImage(size, CV_8UC1);
   for(int y=0;y<size.height;++y){
     for(int x=0;x<size.width;++x){
-      int i = x+size.width*y;
       if(xyzh.at<Vec4f>(y, x)[0]<xMin || xyzh.at<Vec4f>(y, x)[0]>xMax || xyzh.at<Vec4f>(y, x)[1]<yMin || xyzh.at<Vec4f>(y, x)[1]>yMax || xyzh.at<Vec4f>(y, x)[2]<zMin || xyzh.at<Vec4f>(y, x)[2]>zMax){
-        maskImage.at<int>(x,y)=1;
+        maskImage.at<bool>(y,x)=1;
       }else{
-        maskImage.at<int>(x,y)=0;
+        maskImage.at<bool>(y,x)=0;
       }
-      if(depthImage.at<int>(x,y)==2047){
-        maskImage.at<int>(x,y)=1;
+      if(depthImage.at<float>(y,x)==2047.){
+        maskImage.at<bool>(y,x)=1;
       }
     }
   }
@@ -83,9 +80,9 @@ Mat SegmenterHelper::createColorImage(Mat &labelImage){
   core::Channel32fMat depthImageC = depthImage[0];*/
   for(int y=0;y<size.height;++y){
     for(int x=0;x<size.width;++x){
-      maskImage.at<int>(x,y)=0;
-      if(depthImage.at<float>(x,y)==2047){
-        maskImage.at<int>(x,y)=1;
+      maskImage.at<bool>(y,x)=0;
+      if(depthImage.at<float>(y,x)==2047){
+        maskImage.at<bool>(y,x)=1;
       }
     }
   }
@@ -98,7 +95,7 @@ Mat SegmenterHelper::createColorImage(Mat &labelImage){
   core::Channel32s labelImageC = labelImage[0];
   core::Channel32s stableLabelImageC = stableLabelImage[0];
   */
- Mat stableLabelImage(labelImage.size(), CV_8UC1);
+ Mat stableLabelImage(labelImage.size(), CV_32SC1);
   Size size = labelImage.size();
   if(m_data->stabelizeCounter==0){//first image
     m_data->lastLabelImage = labelImage.clone();
@@ -110,11 +107,11 @@ Mat SegmenterHelper::createColorImage(Mat &labelImage){
     int countLast=0;
     for(int y=0; y<size.height; y++){
       for(int x=0; x<size.width; x++){
-        if(labelImage.at<int>(x,y)>countCur){
-          countCur=labelImage.at<int>(x,y);
+        if(labelImage.at<unsigned int>(y,x)>countCur){
+          countCur=labelImage.at<unsigned int>(y,x);
         }
-        if(m_data->lastLabelImage.at<int>(x,y)>countLast){
-          countLast=m_data->lastLabelImage.at<int>(x,y);
+        if(m_data->lastLabelImage.at<unsigned int>(y,x)>countLast){
+          countLast=m_data->lastLabelImage.at<unsigned int>(y,x);
         }
       }
     }
@@ -128,10 +125,10 @@ Mat SegmenterHelper::createColorImage(Mat &labelImage){
 
     for(int y=0; y<size.height; y++){//reassign label
       for(int x=0; x<size.width; x++){
-        if(labelImage.at<int>(x,y)>0){
-          stableLabelImage.at<int>(x,y)=curAss[labelImage.at<int>(x,y)-1];
+        if(labelImage.at<unsigned int>(y,x)>0){
+          stableLabelImage.at<unsigned int>(y,x)=curAss[labelImage.at<unsigned int>(y,x)-1];
         }else{
-          stableLabelImage.at<int>(x,y)=0;
+          stableLabelImage.at<unsigned int>(y,x)=0;
         }
       }
     }

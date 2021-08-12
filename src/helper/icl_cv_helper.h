@@ -18,3 +18,5 @@ void Mat_to_ICLImg(icl::core::Img32f &image, Mat &mat, int numChannel);
 void Mat_to_ICLImg(icl::core::Img8u &image, Mat &mat, int numChannel);
 
 void Mat_to_DataSegment(icl::core::DataSegment<float, 4> &image, Mat &mat, int h, int w);
+
+void DataSegment_to_Mat(icl::core::DataSegment<float, 4> &image, Mat &mat, int h, int w);
