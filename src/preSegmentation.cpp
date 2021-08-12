@@ -1,10 +1,3 @@
-// https://docs.ros.org/en/api/rosbag_storage/html/c++/
-// http://wiki.ros.org/ros_type_introspection/Tutorials/ReadingRosbagUsingIntrospection
-// https://docs.opencv.org/master/d3/d63/classcv_1_1Mat.html#a952ef1a85d70a510240cb645a90efc0d
-// https://github.com/ccny-ros-pkg/ccny_rgbd_tools/blob/0.1.1/ccny_rgbd/src/rgbd_util.cpp#L308
-
-
-
 #include "preSegmentation.h"
 
 using namespace cv;
@@ -148,12 +141,16 @@ void applyNormalCalculation(Data &data) {
             }
         }
     }
+	//std::cout << data.normalAveragingRange << std::endl;
+	GaussianBlur(data.normals, data.avgNormals, Size(data.normalAveragingRange,data.normalAveragingRange), 0, 0, BORDER_ISOLATED);
+	//applyGaussianNormalSmoothing(data);
+	/*
     if (data.useNormalAveraging && !data.useGaussSmoothing) {
         applyLinearNormalAveraging(data);
     } else if (data.useNormalAveraging && data.useGaussSmoothing) {
         GaussianBlur(data.normals, data.avgNormals, Size(data.normalAveragingRange,data.normalAveragingRange), 0, 0, BORDER_ISOLATED);
 		//applyGaussianNormalSmoothing(data);
-    }
+    }*/
 }
 
 void applyLinearNormalAveraging(Data &data){

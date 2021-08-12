@@ -1,25 +1,25 @@
 #include "CurvatureFeature.h"
 
-Mat_<bool> CurvatureFeature::apply(Mat &depthImg, Mat &xyz, Mat_<bool> &initialMatrix,
+Mat CurvatureFeature::apply(Mat &depthImg, Mat &xyz, Mat &initialMatrix,
                       std::vector<SurfaceFeatureExtract::SurfaceRegionFeature> features,
                       std::vector<std::vector<int> > &surfaces, Mat &normals, bool useOpenObjects, bool useOccludedObjects,
                       float histogramSimilarity, int distance, float maxError, int ransacPasses, float distanceTolerance, float outlierTolerance){
   int w = depthImg.size().width;
-  Mat_<bool> curvature = Mat_<bool>(initialMatrix.rows,initialMatrix.rows, true);//result matrix
+  Mat curvature = Mat(initialMatrix.rows,initialMatrix.rows, CV_8SC1);//result matrix
   //initialize
   for(size_t i=0; i<initialMatrix.rows; i++){
     for(size_t j=0; j<initialMatrix.rows; j++){
       //only test pairs of non-adjacent curved surfaces
-      if(initialMatrix(i,j)==true ||
+      if(initialMatrix.at<bool>(i,j)==true ||
           (features[i].curvatureFactor!=SurfaceFeatureExtract::CURVED_1D && features[i].curvatureFactor!=SurfaceFeatureExtract::CURVED_2D) ||
           (features[j].curvatureFactor!=SurfaceFeatureExtract::CURVED_1D && features[j].curvatureFactor!=SurfaceFeatureExtract::CURVED_2D) ){
-        curvature(i,j)=false;
+        curvature.at<bool>(i,j)=false;
       }
     }
   }
   for(size_t i=0; i<curvature.rows; i++){
     for(size_t j=i+1; j<curvature.cols; j++){//dont check pairs twice
-      if(curvature(i,j)==true){//candidate
+      if(curvature.at<bool>(i,j)==true){//candidate
         bool proceed=true;
 
         //joint criterion: similar surface shape and orientation (normal histogram matching)
@@ -42,8 +42,8 @@ Mat_<bool> CurvatureFeature::apply(Mat &depthImg, Mat &xyz, Mat_<bool> &initialM
         }
 
         if(!proceed){//remove if no case succeeded
-          curvature(i,j)=false;
-          curvature(j,i)=false;
+          curvature.at<bool>(i,j)=false;
+          curvature.at<bool>(j,i)=false;
         }
       }
     }

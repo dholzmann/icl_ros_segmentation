@@ -229,7 +229,7 @@ namespace icl{
     
     int h = depthImage.getHeight();
     int w = depthImage.getWidth();
-    EdgeDetector::Data data(usedFilter, useAveraging, usedAngle, usedSmoothing, normalrange, neighbrange, threshold, avgrange, h, w);
+    EdgeDetector::Data data(usedFilter, useAveraging, usedAngle, usedSmoothing, normalrange, neighbrange, threshold, 5, h, w);
     cv::Mat depth_image = cv::Mat(h, w, CV_32FC1);
       
     icl::core::Img32f d = *depthImage.as32f();

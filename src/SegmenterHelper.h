@@ -1,5 +1,6 @@
 /// Support class for segmentation algorithms.
 /** This class provides supporting methods for segmentation algorithms.*/
+#pragma once
 #include <opencv2/opencv.hpp>
 #include <opencv2/core/mat.hpp>
 

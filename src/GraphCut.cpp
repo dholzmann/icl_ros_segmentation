@@ -1,6 +1,6 @@
 #include <GraphCut.h>
 
-float GraphCut::minCut(Mat_<float> &adjacencyMatrix, std::vector<int> &subset1, std::vector<int> &subset2){
+float GraphCut::minCut(Mat &adjacencyMatrix, std::vector<int> &subset1, std::vector<int> &subset2){
   //Please note: it is possible to add an additional adjacency matrix for faster lookup with values pointing to the edgeList IDs.
 
   //Find minimal cut cost for a single node (initial lambda)
@@ -50,12 +50,13 @@ float GraphCut::minCut(Mat_<float> &adjacencyMatrix, std::vector<int> &subset1, 
 }
 
 
-std::vector<std::vector<int> > GraphCut::thresholdCut(Mat_<float> &adjacencyMatrix, float threshold){
-  std::vector<std::vector<int> > subgraphs = findUnconnectedSubgraphs(adjacencyMatrix);
+std::vector<std::vector<int> > GraphCut::thresholdCut(Mat &adjacencyMatrix, float threshold){
+  Mat probabilities = calculateProbabilityMatrix(adjacencyMatrix, true);
+  std::vector<std::vector<int> > subgraphs = findUnconnectedSubgraphs(probabilities);
   std::vector<std::vector<int> > children(subgraphs.size());//children IDs (empty = none)
   for(unsigned int i=0; i<subgraphs.size(); i++){
     if(subgraphs[i].size()>1){
-      Mat_<float> subMatrix = createSubMatrix(adjacencyMatrix, subgraphs[i]);
+      Mat_<float> subMatrix = createSubMatrix(probabilities, subgraphs[i]);
 
       std::vector<int> subset1;
       std::vector<int> subset2;
@@ -90,14 +91,9 @@ std::vector<std::vector<int> > GraphCut::thresholdCut(Mat_<float> &adjacencyMatr
 }
 
 
-std::vector<std::vector<int> > GraphCut::thresholdCut(Mat_<bool> &adjacencyMatrix, float threshold){
-  Mat_<float> probabilities = calculateProbabilityMatrix(adjacencyMatrix, true);
-  return thresholdCut(probabilities, threshold);
-}
-
-
-std::vector<GraphCut::CutNode> GraphCut::hierarchicalCut(Mat_<float> &adjacencyMatrix){
-  std::vector<std::vector<int> > subsets = findUnconnectedSubgraphs(adjacencyMatrix);
+std::vector<GraphCut::CutNode> GraphCut::hierarchicalCut(Mat &adjacencyMatrix){
+  Mat probabilities = calculateProbabilityMatrix(adjacencyMatrix, true);
+  std::vector<std::vector<int> > subsets = findUnconnectedSubgraphs(probabilities);
   std::vector<CutNode> cutNodes(subsets.size());
   for(unsigned int i=0; i<cutNodes.size(); i++){
     cutNodes[i].subset = subsets[i];
@@ -105,7 +101,7 @@ std::vector<GraphCut::CutNode> GraphCut::hierarchicalCut(Mat_<float> &adjacencyM
   }
   for(unsigned int i=0; i<cutNodes.size(); i++){//process
     if(cutNodes[i].subset.size()>1){//inner nodes
-      Mat_<float> subMatrix = createSubMatrix(adjacencyMatrix, cutNodes[i].subset);
+      Mat_<float> subMatrix = createSubMatrix(probabilities, cutNodes[i].subset);
       std::vector<int> subset1;
       std::vector<int> subset2;
       float cost = GraphCut::minCut(subMatrix, subset1, subset2);
@@ -134,13 +130,6 @@ std::vector<GraphCut::CutNode> GraphCut::hierarchicalCut(Mat_<float> &adjacencyM
   }
   return cutNodes;
 }
-
-
-std::vector<GraphCut::CutNode> GraphCut::hierarchicalCut(Mat_<bool> &adjacencyMatrix){
-  Mat_<float> probabilities = calculateProbabilityMatrix(adjacencyMatrix, true);
-  return hierarchicalCut(probabilities);
-}
-
 
 std::vector<float> GraphCut::capforest(std::vector<Point> &edgeList, std::vector<float> &edgeCosts, int subsetsSize){
   //calculate the lower bounds q(e)
@@ -184,12 +173,12 @@ std::vector<float> GraphCut::capforest(std::vector<Point> &edgeList, std::vector
 }
 
 
-float GraphCut::initialLambda(Mat_<float> &adjacencyMatrix, int &lambda_id){
+float GraphCut::initialLambda(Mat &adjacencyMatrix, int &lambda_id){
   float lambda_score = 1000000;
   for(unsigned int j=0; j<adjacencyMatrix.size().height; j++){
     float score=0;
     for(unsigned int k=0; k<adjacencyMatrix.size().width; k++){
-      score+=adjacencyMatrix(j,k);
+      score+=adjacencyMatrix.at<float>(j,k);
     }
     if(score<lambda_score){
       lambda_score=score;
@@ -200,20 +189,20 @@ float GraphCut::initialLambda(Mat_<float> &adjacencyMatrix, int &lambda_id){
 }
 
 
-void GraphCut::createEdgeList(Mat_<float> &adjacencyMatrix, std::vector<Point> &edgeList, std::vector<float> &edgeCosts){
+void GraphCut::createEdgeList(Mat &adjacencyMatrix, std::vector<Point> &edgeList, std::vector<float> &edgeCosts){
   for(unsigned int j=0; j<adjacencyMatrix.size().height; j++){
     for(unsigned int k=j+1; k<adjacencyMatrix.size().width; k++){
-      if(adjacencyMatrix(j,k)>0){
+      if(adjacencyMatrix.at<float>(j,k)>0){
         Point p(j,k);
         edgeList.push_back(p);
-        edgeCosts.push_back(adjacencyMatrix(j,k));
+        edgeCosts.push_back(adjacencyMatrix.at<float>(j,k));
       }
     }
   }
 }
 
 
-std::vector<std::vector<int> > GraphCut::createInitialNodes(Mat_<float> &adjacencyMatrix){
+std::vector<std::vector<int> > GraphCut::createInitialNodes(Mat &adjacencyMatrix){
   std::vector<std::vector<int> > subsets;
   for(unsigned int j=0; j<adjacencyMatrix.size().height; j++){
     std::vector<int> sg;
@@ -312,7 +301,7 @@ float GraphCut::merge(std::vector<Point> &edgeList, std::vector<float> &edgeCost
 }
 
 
-std::vector<std::vector<int> > GraphCut::findUnconnectedSubgraphs(Mat_<float> &adjacencyMatrix){
+std::vector<std::vector<int> > GraphCut::findUnconnectedSubgraphs(Mat &adjacencyMatrix){
   std::vector<std::vector<int> > subgraphs;
   std::vector<bool> visited(adjacencyMatrix.size().height,false);
   unsigned int visitCount=0;
@@ -331,7 +320,7 @@ std::vector<std::vector<int> > GraphCut::findUnconnectedSubgraphs(Mat_<float> &a
 
     for(unsigned int i=0; i<subgraph.size(); i++){//breadth first search
       for(unsigned int j=0; j<adjacencyMatrix.size().width; j++){
-        if(adjacencyMatrix(subgraph[i],j)>0 && visited[j]==false){//add node if not assigned and edge exists
+        if(adjacencyMatrix.at<float>(subgraph[i],j)>0 && visited[j]==false){//add node if not assigned and edge exists
           visited[j]=true;
           visitCount++;
           subgraph.push_back(j);
@@ -344,38 +333,38 @@ std::vector<std::vector<int> > GraphCut::findUnconnectedSubgraphs(Mat_<float> &a
 }
 
 
-Mat_<float> GraphCut::createSubMatrix(Mat_<float> &adjacencyMatrix, std::vector<int> &subgraph){
-  Mat_<float> subMatrix(subgraph.size(),subgraph.size());
+Mat GraphCut::createSubMatrix(Mat &adjacencyMatrix, std::vector<int> &subgraph){
+  Mat subMatrix(static_cast<int>(subgraph.size()),static_cast<int>(subgraph.size()), CV_32FC1);
   for(unsigned int j=0; j<subMatrix.size().height; j++){
     for(unsigned int k=0; k<subMatrix.size().width; k++){
-      subMatrix(j,k)=adjacencyMatrix(subgraph[j],subgraph[k]);
+      subMatrix.at<float>(j,k)=adjacencyMatrix.at<float>(subgraph[j],subgraph[k]);
     }
   }
   return subMatrix;
 }
 
 
-Mat_<float> GraphCut::calculateProbabilityMatrix(Mat_<bool> &initialMatrix, bool symmetry){
-  Mat_<float> probabilities=Mat_<float>(initialMatrix.size().height,initialMatrix.size().width,0.0);
+Mat GraphCut::calculateProbabilityMatrix(Mat &initialMatrix, bool symmetry){
+  Mat probabilities=Mat(initialMatrix.size().height,initialMatrix.size().width,0.0);
   for(unsigned int a=0; a<initialMatrix.size().width; a++){
     int count = 0;
     for(unsigned int b=0; b<initialMatrix.size().width; b++){//count number of edges for each node
-      if(initialMatrix(a,b)==1 && initialMatrix(b,a)==1 && a!=b){
+      if(initialMatrix.at<bool>(a,b)==1 && initialMatrix.at<bool>(b,a)==1 && a!=b){
         count++;
       }
     }
     for(unsigned int b=0; b<initialMatrix.size().width; b++){//cost of each edge: 1. / num edges
-      if(initialMatrix(a,b)==1 && initialMatrix(b,a)==1 && a!=b){
-        probabilities(b,a)=1./(float)count;
+      if(initialMatrix.at<bool>(a,b)==1 && initialMatrix.at<bool>(b,a)==1 && a!=b){
+        probabilities.at<float>(b,a)=1./(float)count;
       }
     }
   }
   if(symmetry==true){
     for(unsigned int i=0; i<probabilities.size().width; i++){//symmetry
       for(unsigned int j=i+1; j<probabilities.size().width; j++){
-        float v = (probabilities(i,j)+probabilities(j,i))/2.;
-        probabilities(i,j)=v;
-        probabilities(j,i)=v;
+        float v = (probabilities.at<float>(i,j)+probabilities.at<float>(j,i))/2.;
+        probabilities.at<float>(i,j)=v;
+        probabilities.at<float>(j,i)=v;
       }
     }
   }
@@ -383,25 +372,25 @@ Mat_<float> GraphCut::calculateProbabilityMatrix(Mat_<bool> &initialMatrix, bool
 }
 
 
-void GraphCut::mergeMatrix(Mat_<bool> &dst, Mat_<bool> &src){
+void GraphCut::mergeMatrix(Mat &dst, Mat &src){
   if(src.size().height!=dst.size().height){
     throw ("unequal sizes");
   }
   for(unsigned int i=0; i<src.size().height; i++){
     for(unsigned int j=0; j<src.size().width; j++){
-      if(src(i,j)==true) dst(i,j)=true;
+      if(src.at<bool>(i,j)==true) dst.at<bool>(i,j)=true;
     }
   }
 }
 
 
-void GraphCut::weightMatrix(Mat_<float> &dst, Mat_<bool> &featureMatrix, float weight){
+void GraphCut::weightMatrix(Mat &dst, Mat &featureMatrix, float weight){
   if(featureMatrix.size().height!=dst.size().height){
     throw ("unequal sizes");
   }
   for(unsigned int i=0; i<featureMatrix.size().height; i++){
     for(unsigned int j=0; j<featureMatrix.size().width; j++){
-      if(featureMatrix(i,j)==true) dst(i,j)*=weight;
+      if(featureMatrix.at<bool>(i,j)==true) dst.at<float>(i,j)*=weight;
     }
   }
 }

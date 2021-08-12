@@ -1,3 +1,4 @@
+#pragma once
 #include <opencv2/opencv.hpp>
 #include <opencv2/core/mat.hpp>
 #include <opencv2/imgproc.hpp>
@@ -29,7 +30,7 @@ using namespace cv;
 struct Data {
         int medianFilterSize = 3;
         int normalRange = 2;
-        int normalAveragingRange = 1;
+        int normalAveragingRange = 5;
         int neighborhoodMode = 0;
         int neighborhoodRange = 3;
         float binarizationThreshold = 0.89;

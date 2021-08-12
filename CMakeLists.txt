@@ -75,6 +75,7 @@ set(LIB_SRC
   src/SegmenterHelper.cpp
   src/helper/icl_cv_helper.cpp
   src/GraphCut.cpp
+  src/CoPlanarityFeature.cpp
 	)
 set(LIB_INC
 	src/Kinect.h
@@ -90,6 +91,7 @@ set(LIB_INC
   src/RegionGrowing.h
   src/helper/icl_cv_helper.h
   src/GraphCut.h
+  src/CoPlanarityFeature.h
 )
 
 set(EXEC
@@ -103,6 +105,7 @@ set(EXEC
   src/RegionGrowing.h
   src/helper/icl_cv_helper.h
   src/GraphCut.h
+  src/CoPlanarityFeature.h
   src/SurfaceFeature.cpp
   src/CurvatureFeature.cpp
   src/CutfreeAdjacencyFeature.cpp
@@ -112,6 +115,7 @@ set(EXEC
   src/SegmenterHelper.cpp
   src/helper/icl_cv_helper.cpp
   src/GraphCut.cpp
+  src/CoPlanarityFeature.cpp
 )
 
 ## Declare a C++ library

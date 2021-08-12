@@ -27,7 +27,7 @@ class CurvatureFeature{
       @param distanceTolerance distance tolerance for occlusion check
       @param outlierTolerance outlier tolerance for occlusion check
       @return the boolean curvature matrix */
-    static Mat_<bool> apply(Mat &depthImg, Mat &xyz, Mat_<bool> &initialMatrix,
+    static Mat apply(Mat &depthImg, Mat &xyz, Mat &initialMatrix,
                       std::vector<SurfaceFeatureExtract::SurfaceRegionFeature> features,
                       std::vector<std::vector<int> > &surfaces, Mat &normals, bool useOpenObjects=true, bool useOccludedObjects=true,
                       float histogramSimilarity=0.5, int distance=10, float maxError=10., int ransacPasses=20, float distanceTolerance=3., float outlierTolerance=5.);
